@@ -45,3 +45,7 @@ poetry.lock
 
 .DS_Store
 Thumbs.db
+
+
+# ignore project data folder
+data/

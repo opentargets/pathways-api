@@ -3,11 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 from app.config import get_config
+from app.routers.pathways import router as pathways_router
 
 import logging
 
 logger = logging.getLogger(__name__)
-
 config = get_config()
 
 app = FastAPI(debug=config.DEBUG)
@@ -20,6 +20,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(pathways_router)
+
 
 @app.get("/")
 async def root():
@@ -30,8 +32,6 @@ async def analysis(request: Request):
     return []
 
 
-
-# Error habdler
 @app.exception_handler(StarletteHTTPException)
 async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
     if exc.status_code == 404:
