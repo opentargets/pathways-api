@@ -37,6 +37,8 @@ start api dev:
 	@echo "📚 API docs will be available at: http://localhost:8000/docs"
 	@uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
+
+
 # Install all dependencies
 install-deps:
 	@echo "📦 Installing backend dependencies..."
