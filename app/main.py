@@ -1,5 +1,8 @@
+import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 from app.config import get_config
@@ -20,17 +23,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
 app.include_router(pathways_router)
 
+# Mount static files for the React app
+app.mount("/assets", StaticFiles(directory="ui/dist/assets"), name="assets")
 
 @app.get("/")
 async def root():
     return {"message": f"Welcome to {config.APP_NAME}"}
-
-@app.get("/analysis")
-async def analysis(request: Request):
-    return []
-
 
 @app.exception_handler(StarletteHTTPException)
 async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
@@ -46,3 +47,31 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
         status_code=exc.status_code,
         content={"error": exc.detail},
     )
+
+
+@app.get("/ui/{path:path}")
+async def serve_react_app(path: str):
+    """
+    Serve the React application. This catch-all route handles all UI routes
+    and serves the React app's index.html for client-side routing.
+    """
+    if path.startswith("assets/"):
+        raise StarletteHTTPException(status_code=404, detail="Asset not found")
+    
+    index_path = "ui/dist/index.html"
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    else:
+        raise StarletteHTTPException(status_code=404, detail="React app not built")
+
+
+@app.get("/ui")
+async def serve_react_app_root():
+    """
+    Serve the React application at the root UI path.
+    """
+    index_path = "ui/dist/index.html"
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    else:
+        raise StarletteHTTPException(status_code=404, detail="React app not built")
