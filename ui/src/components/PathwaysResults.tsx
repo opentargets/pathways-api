@@ -12,8 +12,6 @@ import {
 	PathwaysTable,
 	PathwaysHierarchy,
 	PathwaysHierarchyTreeMap,
-	PathwaysGeneNetwork,
-	PathwayFlowVisualization,
 } from "./pathways";
 import PathwaysFlameGraph from "./PathwaysFlameGraph";
 
@@ -30,7 +28,7 @@ const PathwaysResults: React.FC<PathwaysResultsProps> = ({
 }) => {
 	const displayPathways = pathways || [];
 	const [viewMode, setViewMode] = useState<
-		"table" | "hierarchy" | "treemap" | "genenetwork" | "flow" | "flamegraph"
+		"table" | "hierarchy" | "treemap" | "flamegraph"
 	>("table");
 
 	if (loading) {
@@ -88,8 +86,6 @@ const PathwaysResults: React.FC<PathwaysResultsProps> = ({
 					<ToggleButton value="hierarchy">Tree View</ToggleButton>
 					<ToggleButton value="flamegraph">Flame Graph</ToggleButton>
 					<ToggleButton value="treemap">TreeMap</ToggleButton>
-					<ToggleButton value="genenetwork">Gene Network</ToggleButton>
-					<ToggleButton value="flow">Flow Visualization</ToggleButton>
 				</ToggleButtonGroup>
 			</Box>
 
@@ -101,40 +97,6 @@ const PathwaysResults: React.FC<PathwaysResultsProps> = ({
 
 			{viewMode === "treemap" && (
 				<PathwaysHierarchyTreeMap pathways={displayPathways} />
-			)}
-
-			{viewMode === "genenetwork" && (
-				<PathwaysGeneNetwork pathways={displayPathways} />
-			)}
-
-			{viewMode === "flow" && (
-				<Box
-					sx={{ height: "auto", border: "1px solid #e0e0e0", borderRadius: 1 }}
-				>
-					<PathwayFlowVisualization
-						data={displayPathways.map((pathway) => ({
-							ID: pathway.ID || pathway.id || "",
-							Pathway: pathway.Pathway || pathway.pathway || "",
-							ES: pathway.ES || pathway.es || 0,
-							NES: pathway.NES || pathway.nes || 0,
-							FDR: pathway.FDR || pathway.fdr || 1,
-							"p-value":
-								pathway["p-value"] || pathway.p_value || pathway.pvalue || 1,
-							"Number of input genes":
-								pathway["Number of input genes"] ||
-								pathway.number_of_input_genes ||
-								0,
-							"Leading edge genes":
-								pathway["Leading edge genes"] ||
-								pathway.leading_edge_genes ||
-								"",
-							"Pathway size":
-								pathway["Pathway size"] || pathway.pathway_size || 0,
-							"Parent pathway":
-								pathway["Parent pathway"] || pathway.parent_pathway || "",
-						}))}
-					/>
-				</Box>
 			)}
 
 			{viewMode === "flamegraph" && (
