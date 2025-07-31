@@ -9,7 +9,7 @@ router = APIRouter(prefix="/pathways", tags=["pathways"])
 @router.get("/", response_model=list[dict[str, Any]])
 async def get_pathways(
     diseaseId: str = Query(..., description="EFO identifier, e.g. EFO_0000094"),
-    library:  str = Query(..., description="Folder under data/, e.g. Reactome_Pathways_2024"),
+    library:  str = Query(..., description="Folder under data/table_view, e.g. Reactome_Pathways_2024"),
     fdr_lt:   Optional[float] = Query(
         None,
         description="Only include rows with fdr < this value"

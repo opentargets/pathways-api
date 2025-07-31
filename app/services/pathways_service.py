@@ -5,7 +5,7 @@ from pyspark.sql.functions import col
 
 from app.utils.spark import get_spark_session
 
-BASE_PATH = "data"
+BASE_PATH = "data/table_view"
 
 def fetch_pathways(
     disease_id: str,
