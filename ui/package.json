@@ -10,8 +10,29 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@apollo/client": "^3.13.9",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@fontsource/inter": "^5.2.6",
+    "@fortawesome/fontawesome-svg-core": "^7.0.0",
+    "@fortawesome/free-brands-svg-icons": "^7.0.0",
+    "@fortawesome/free-solid-svg-icons": "^7.0.0",
+    "@fortawesome/react-fontawesome": "^0.2.3",
+    "@mui/icons-material": "^7.2.0",
+    "@mui/material": "^7.2.0",
+    "@reactflow/background": "^11.3.14",
+    "@types/dagre": "^0.7.53",
+    "@types/plotly.js": "^3.0.3",
+    "@types/react-plotly.js": "^2.6.3",
+    "dagre": "^0.8.5",
+    "graphql": "^16.11.0",
+    "plotly.js-dist": "^3.0.3",
+    "polished": "^4.3.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-plotly.js": "^2.6.0",
+    "react-router-dom": "^7.7.1",
+    "reactflow": "^11.11.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
