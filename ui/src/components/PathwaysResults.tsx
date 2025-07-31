@@ -8,11 +8,13 @@ import {
 	ToggleButton,
 } from "@mui/material";
 import type { Pathway } from "../lib/api";
-import PathwaysTable from "./PathwaysTable";
-import PathwaysHierarchy from "./PathwaysHierarchy";
-import PathwaysHierarchyTreeMap from "./PathwaysHierarchyTreeMap";
-import PathwaysGeneNetwork from "./PathwaysGeneNetwork";
-import PathwayFlowVisualization from "./PathwayFlowVisualization";
+import {
+	PathwaysTable,
+	PathwaysHierarchy,
+	PathwaysHierarchyTreeMap,
+	PathwaysGeneNetwork,
+	PathwayFlowVisualization,
+} from "./pathways";
 import PathwaysFlameGraph from "./PathwaysFlameGraph";
 
 interface PathwaysResultsProps {

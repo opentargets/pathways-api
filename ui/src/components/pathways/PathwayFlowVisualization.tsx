@@ -1035,7 +1035,7 @@ const PathwayFlowVisualization: React.FC<{ data?: PathwayData[] }> = ({
 						minZoom={0.1}
 						maxZoom={2}
 						defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
-						onNodeClick={(event, node) => {
+						onNodeClick={(_, node) => {
 							console.log("Node clicked:", node);
 							// You can add custom click handling here
 						}}
