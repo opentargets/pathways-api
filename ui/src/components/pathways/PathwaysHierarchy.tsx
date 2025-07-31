@@ -35,7 +35,7 @@ import {
 	Science as ScienceIcon,
 	TrendingUp as TrendingUpIcon,
 } from "@mui/icons-material";
-import type { Pathway } from "../lib/api";
+import type { Pathway } from "../../lib/api";
 
 interface PathwaysHierarchyProps {
 	pathways: Pathway[];
@@ -89,7 +89,6 @@ const buildPathwayTree = (pathways: Pathway[]): TreeNode[] => {
 				pathway,
 				children: [],
 				level: 0,
-				isExpanded: false, // We'll manage this externally now
 			});
 		}
 	});
