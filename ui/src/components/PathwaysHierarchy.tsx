@@ -1,561 +1,817 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import ReactFlow, {
-  Controls,
-  Background,
-  useNodesState,
-  useEdgesState,
-  addEdge,
-  ReactFlowProvider,
-} from 'reactflow';
-import type {
-  Node,
-  Edge,
-  Connection,
-  EdgeTypes,
-  NodeTypes,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
-import dagre from 'dagre';
+import React, { useState, useCallback, useMemo } from "react";
 import {
-  Box,
-  Typography,
-  Paper,
-  Chip,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Slider,
-  FormControlLabel,
-  Switch,
-} from '@mui/material';
+	Box,
+	Typography,
+	Paper,
+	Chip,
+	IconButton,
+	Tooltip,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	Button,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem,
+	FormControlLabel,
+	Switch,
+	Collapse,
+	List,
+	ListItem,
+	ListItemButton,
+	ListItemIcon,
+	ListItemText,
+	Divider,
+} from "@mui/material";
 import {
-  ZoomIn as ZoomInIcon,
-  ZoomOut as ZoomOutIcon,
-  FitScreen as FitScreenIcon,
-  Settings as SettingsIcon,
-  Info as InfoIcon,
-} from '@mui/icons-material';
-import type { Pathway } from '../lib/api';
+	Settings as SettingsIcon,
+	Info as InfoIcon,
+	ExpandMore as ExpandMoreIcon,
+	ExpandLess as ExpandLessIcon,
+	AccountTree as AccountTreeIcon,
+	Hub as HubIcon,
+	Science as ScienceIcon,
+	TrendingUp as TrendingUpIcon,
+} from "@mui/icons-material";
+import type { Pathway } from "../lib/api";
 
 interface PathwaysHierarchyProps {
-  pathways: Pathway[];
+	pathways: Pathway[];
 }
 
-type HierarchyNode = Node & {
-  data: {
-    label: string;
-    pathway: Pathway;
-    pValue?: number;
-    fdr?: number;
-    genes?: string[];
-  };
+interface TreeNode {
+	id: string;
+	pathway: Pathway;
+	children: TreeNode[];
+	level: number;
+}
+
+interface TreeViewSettings {
+	showPValues: boolean;
+	showFDR: boolean;
+	showGenes: boolean;
+	showGeneCount: boolean;
+	showPathwaySize: boolean;
+	showES: boolean;
+	showNES: boolean;
+	compactMode: boolean;
+	sortBy: "name" | "pvalue" | "fdr" | "es" | "nes";
+	sortDirection: "asc" | "desc";
+}
+
+// Build tree structure from pathways
+const buildPathwayTree = (pathways: Pathway[]): TreeNode[] => {
+	const pathwayMap = new Map<string, Pathway>();
+	const childrenMap = new Map<string, string[]>();
+	const rootNodes: TreeNode[] = [];
+
+	// Create pathway map and collect children
+	pathways.forEach((pathway) => {
+		const id = pathway["ID"] || pathway["id"] || "";
+		pathwayMap.set(id, pathway);
+
+		const parentPathway =
+			pathway["Parent pathway"] || pathway["parent_pathway"] || "";
+		if (parentPathway) {
+			const parents = parentPathway.split(",").map((p: string) => p.trim());
+			parents.forEach((parent: string) => {
+				if (!childrenMap.has(parent)) {
+					childrenMap.set(parent, []);
+				}
+				childrenMap.get(parent)!.push(id);
+			});
+		} else {
+			// This is a root pathway
+			rootNodes.push({
+				id,
+				pathway,
+				children: [],
+				level: 0,
+				isExpanded: false, // We'll manage this externally now
+			});
+		}
+	});
+
+	// Recursive function to build tree
+	const buildChildren = (parentId: string, level: number): TreeNode[] => {
+		const children = childrenMap.get(parentId) || [];
+		return children
+			.map((childId) => {
+				const childPathway = pathwayMap.get(childId);
+				if (!childPathway) return null;
+
+				return {
+					id: childId,
+					pathway: childPathway,
+					children: buildChildren(childId, level + 1),
+					level,
+					isExpanded: false, // We'll manage this externally now
+				};
+			})
+			.filter(Boolean) as TreeNode[];
+	};
+
+	// Build children for root nodes
+	rootNodes.forEach((rootNode) => {
+		rootNode.children = buildChildren(rootNode.id, 1);
+	});
+
+	return rootNodes;
 };
 
-type HierarchyEdge = Edge & {
-  data?: {
-    label?: string;
-    weight?: number;
-  };
+// Sort tree nodes
+const sortTreeNodes = (
+	nodes: TreeNode[],
+	settings: TreeViewSettings,
+): TreeNode[] => {
+	const sortFunction = (a: TreeNode, b: TreeNode) => {
+		let aValue: string | number, bValue: string | number;
+
+		switch (settings.sortBy) {
+			case "name":
+				aValue = a.pathway["Pathway"] || a.pathway["pathway"] || "";
+				bValue = b.pathway["Pathway"] || b.pathway["pathway"] || "";
+				break;
+			case "pvalue":
+				aValue = a.pathway["p-value"] || a.pathway["p_value"] || 1;
+				bValue = b.pathway["p-value"] || b.pathway["p_value"] || 1;
+				break;
+			case "fdr":
+				aValue = a.pathway["FDR"] || a.pathway["fdr"] || 1;
+				bValue = b.pathway["FDR"] || b.pathway["fdr"] || 1;
+				break;
+			case "es":
+				aValue = a.pathway["ES"] || a.pathway["es"] || 0;
+				bValue = b.pathway["ES"] || b.pathway["es"] || 0;
+				break;
+			case "nes":
+				aValue = a.pathway["NES"] || a.pathway["nes"] || 0;
+				bValue = b.pathway["NES"] || b.pathway["nes"] || 0;
+				break;
+			default:
+				return 0;
+		}
+
+		if (settings.sortDirection === "asc") {
+			return aValue > bValue ? 1 : -1;
+		} else {
+			return aValue < bValue ? 1 : -1;
+		}
+	};
+
+	const sortRecursive = (nodes: TreeNode[]): TreeNode[] => {
+		return nodes.sort(sortFunction).map((node) => ({
+			...node,
+			children: sortRecursive(node.children),
+		}));
+	};
+
+	return sortRecursive(nodes);
 };
 
-// Build hierarchy from parent pathway relationships
-const buildHierarchy = (pathways: Pathway[]) => {
-  const pathwayMap = new Map<string, Pathway>();
-  const childrenMap = new Map<string, string[]>();
-  const rootPathways: Pathway[] = [];
+// Tree Node Component
+const TreeNodeComponent: React.FC<{
+	node: TreeNode;
+	settings: TreeViewSettings;
+	expandedNodes: Set<string>;
+	onToggle: (nodeId: string) => void;
+	onNodeClick: (node: TreeNode) => void;
+}> = ({ node, settings, expandedNodes, onToggle, onNodeClick }) => {
+	const pathway = node.pathway;
+	const pValue = pathway["p-value"] || pathway["p_value"] || 1;
+	const fdr = pathway["FDR"] || pathway["fdr"] || 1;
+	const es = pathway["ES"] || pathway["es"] || 0;
+	const nes = pathway["NES"] || pathway["nes"] || 0;
+	const genes = pathway["Leading edge genes"] || pathway["genes"] || "";
+	const geneCount = pathway["Number of input genes"] || 0;
+	const pathwaySize = pathway["Pathway size"] || 0;
 
-  // Create pathway map and collect children
-  pathways.forEach(pathway => {
-    const id = pathway['ID'] || pathway['id'] || '';
-    pathwayMap.set(id, pathway);
-    
-    const parentPathway = pathway['Parent pathway'] || pathway['parent_pathway'] || '';
-    if (parentPathway) {
-      const parents = parentPathway.split(',').map((p: string) => p.trim());
-      parents.forEach((parent: string) => {
-        if (!childrenMap.has(parent)) {
-          childrenMap.set(parent, []);
-        }
-        childrenMap.get(parent)!.push(id);
-      });
-    } else {
-      rootPathways.push(pathway);
-    }
-  });
+	const geneList =
+		typeof genes === "string"
+			? genes.split(",").map((g) => g.trim())
+			: Array.isArray(genes)
+				? genes
+				: [];
 
-  return { pathwayMap, childrenMap, rootPathways };
-};
+	const hasChildren = node.children.length > 0;
+	const isSignificant = pValue < 0.05;
+	const isExpanded = expandedNodes.has(node.id);
 
-// Generate edges based on parent-child relationships
-const generateHierarchicalEdges = (nodes: HierarchyNode[], maxEdges: number = 200): HierarchyEdge[] => {
-  const edges: HierarchyEdge[] = [];
-  const nodeCount = nodes.length;
-  
-  if (nodeCount === 0) return edges;
+	return (
+		<Box>
+			<ListItem
+				sx={{
+					pl: node.level * 3 + 2,
+					backgroundColor: isSignificant
+						? "rgba(76, 175, 80, 0.1)"
+						: "transparent",
+					borderLeft: isSignificant
+						? "4px solid #4caf50"
+						: "4px solid transparent",
+					"&:hover": {
+						backgroundColor: "rgba(0, 0, 0, 0.04)",
+					},
+				}}
+			>
+				<ListItemButton
+					onClick={() => onNodeClick(node)}
+					sx={{ borderRadius: 1 }}
+				>
+					<ListItemIcon sx={{ minWidth: 40 }}>
+						{hasChildren ? (
+							<IconButton
+								size="small"
+								onClick={(e) => {
+									e.stopPropagation();
+									onToggle(node.id);
+								}}
+							>
+								{isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+							</IconButton>
+						) : (
+							<ScienceIcon color={isSignificant ? "success" : "disabled"} />
+						)}
+					</ListItemIcon>
 
-  // Build hierarchy from the pathways
-  const pathways = nodes.map(node => node.data.pathway);
-  const { childrenMap } = buildHierarchy(pathways);
+					<ListItemText
+						primary={
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									gap: 1,
+									flexWrap: "wrap",
+								}}
+							>
+								<Typography
+									variant="body1"
+									sx={{
+										fontWeight: isSignificant ? "bold" : "normal",
+										color: isSignificant ? "primary.main" : "text.primary",
+									}}
+								>
+									{pathway["Pathway"] ||
+										pathway["pathway"] ||
+										"Unknown Pathway"}
+								</Typography>
 
-  // Create edges based on parent-child relationships
-  for (let i = 0; i < nodeCount && edges.length < maxEdges; i++) {
-    const sourceNode = nodes[i];
-    const sourcePathway = sourceNode.data.pathway;
-    const sourceId = sourcePathway['ID'] || sourcePathway['id'] || sourceNode.id;
+								<Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+									{settings.showPValues && (
+										<Chip
+											label={`P: ${pValue.toExponential(2)}`}
+											size="small"
+											color={pValue < 0.05 ? "success" : "default"}
+											variant={pValue < 0.05 ? "filled" : "outlined"}
+										/>
+									)}
 
-    // Find children of this pathway
-    const children = childrenMap.get(sourceId) || [];
-    
-    for (const childId of children) {
-      if (edges.length >= maxEdges) break;
-      
-      // Find the target node that matches this child
-      const targetNode = nodes.find(node => {
-        const pathway = node.data.pathway;
-        const nodeId = pathway['ID'] || pathway['id'] || node.id;
-        return nodeId === childId;
-      });
+									{settings.showFDR && (
+										<Chip
+											label={`FDR: ${fdr.toExponential(2)}`}
+											size="small"
+											color={fdr < 0.05 ? "success" : "default"}
+											variant={fdr < 0.05 ? "filled" : "outlined"}
+										/>
+									)}
 
-      if (targetNode) {
-        edges.push({
-          id: `edge-${sourceNode.id}-${targetNode.id}`,
-          source: sourceNode.id,
-          target: targetNode.id,
-          type: 'smoothstep',
-          style: {
-            stroke: '#2196f3',
-            strokeWidth: 2,
-            opacity: 0.8,
-          },
-          data: {
-            label: 'Parent-Child',
-            weight: 1,
-          },
-        } as HierarchyEdge);
-      }
-    }
-  }
+									{settings.showES && (
+										<Chip
+											label={`ES: ${es.toFixed(3)}`}
+											size="small"
+											color={es > 0.2 ? "success" : "default"}
+											variant={es > 0.2 ? "filled" : "outlined"}
+										/>
+									)}
 
-  return edges;
+									{settings.showNES && (
+										<Chip
+											label={`NES: ${nes.toFixed(3)}`}
+											size="small"
+											color={nes > 1.5 ? "success" : "default"}
+											variant={nes > 1.5 ? "filled" : "outlined"}
+										/>
+									)}
+
+									{settings.showGeneCount && (
+										<Chip
+											label={`${geneCount} genes`}
+											size="small"
+											color="primary"
+											variant="outlined"
+										/>
+									)}
+
+									{settings.showPathwaySize && (
+										<Chip
+											label={`Size: ${pathwaySize}`}
+											size="small"
+											color="secondary"
+											variant="outlined"
+										/>
+									)}
+								</Box>
+							</Box>
+						}
+						secondary={
+							settings.showGenes &&
+							geneList.length > 0 && (
+								<Box sx={{ mt: 1 }}>
+									<Typography variant="caption" color="text.secondary">
+										Leading edge genes:
+									</Typography>
+									<Box
+										sx={{
+											display: "flex",
+											flexWrap: "wrap",
+											gap: 0.5,
+											mt: 0.5,
+										}}
+									>
+										{geneList.slice(0, 10).map((gene, index) => (
+											<Chip
+												key={`${node.id}-gene-${index}`}
+												label={gene}
+												size="small"
+												variant="outlined"
+												sx={{ fontSize: "0.6rem" }}
+											/>
+										))}
+										{geneList.length > 10 && (
+											<Chip
+												label={`+${geneList.length - 10} more`}
+												size="small"
+												variant="outlined"
+												sx={{ fontSize: "0.6rem" }}
+											/>
+										)}
+									</Box>
+								</Box>
+							)
+						}
+					/>
+				</ListItemButton>
+			</ListItem>
+
+			{hasChildren && isExpanded && (
+				<Collapse in={isExpanded} timeout="auto" unmountOnExit>
+					<List component="div" disablePadding>
+						{node.children.map((childNode) => (
+							<TreeNodeComponent
+								key={childNode.id}
+								node={childNode}
+								settings={settings}
+								expandedNodes={expandedNodes}
+								onToggle={onToggle}
+								onNodeClick={onNodeClick}
+							/>
+						))}
+					</List>
+				</Collapse>
+			)}
+		</Box>
+	);
 };
 
 const PathwaysHierarchy: React.FC<PathwaysHierarchyProps> = ({ pathways }) => {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [nodeDetailsOpen, setNodeDetailsOpen] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<HierarchyNode | null>(null);
-  const reactFlowRef = useRef<any>(null);
-  const [renderTime, setRenderTime] = useState<number>(0);
-  const [settings, setSettings] = useState({
-    nodeSpacing: 200,
-    maxNodes: 50,
-    maxEdges: 200,
-    showPValues: true,
-    showFDR: true,
-    showGenes: false,
-    layout: 'hierarchical' as 'hierarchical' | 'force' | 'circular',
-  });
+	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [nodeDetailsOpen, setNodeDetailsOpen] = useState(false);
+	const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
+	const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+	const [settings, setSettings] = useState<TreeViewSettings>({
+		showPValues: true,
+		showFDR: true,
+		showGenes: false,
+		showGeneCount: true,
+		showPathwaySize: false,
+		showES: false,
+		showNES: false,
+		compactMode: false,
+		sortBy: "pvalue",
+		sortDirection: "asc",
+	});
 
-  // Use default node types
-  const nodeTypes = useMemo(() => ({}), []);
+	// Build and sort tree
+	const treeData = useMemo(() => {
+		const tree = buildPathwayTree(pathways);
+		return sortTreeNodes(tree, settings);
+	}, [pathways, settings]);
 
-  // Memoized layout function
-  const getLayoutedElements = useCallback((nodes: Node[], edges: Edge[], direction = 'TB') => {
-    const dagreGraph = new dagre.graphlib.Graph();
-    dagreGraph.setDefaultEdgeLabel(() => ({}));
-    dagreGraph.setGraph({ rankdir: direction });
+	// Handle node toggle
+	const handleNodeToggle = useCallback((nodeId: string) => {
+		setExpandedNodes((prev) => {
+			const newSet = new Set(prev);
+			if (newSet.has(nodeId)) {
+				newSet.delete(nodeId);
+			} else {
+				newSet.add(nodeId);
+			}
+			return newSet;
+		});
+	}, []);
 
-    // Set nodes with consistent sizing
-    nodes.forEach((node) => {
-      dagreGraph.setNode(node.id, { width: 200, height: 120 });
-    });
+	// Handle node click for details
+	const handleNodeClick = useCallback((node: TreeNode) => {
+		setSelectedNode(node);
+		setNodeDetailsOpen(true);
+	}, []);
 
-    // Set edges
-    edges.forEach((edge) => {
-      dagreGraph.setEdge(edge.source, edge.target);
-    });
+	// Handle settings change
+	const handleSettingsChange = useCallback(
+		(key: keyof TreeViewSettings, value: string | boolean) => {
+			setSettings((prev) => ({ ...prev, [key]: value }));
+		},
+		[],
+	);
 
-    dagre.layout(dagreGraph);
+	if (pathways.length === 0) {
+		return (
+			<Box textAlign="center" py={4}>
+				<Typography color="text.secondary">
+					No pathways to display in tree view.
+				</Typography>
+			</Box>
+		);
+	}
 
-    return {
-      nodes: nodes.map((node) => {
-        const nodeWithPosition = dagreGraph.node(node.id);
-        return {
-          ...node,
-          position: {
-            x: nodeWithPosition.x - 100,
-            y: nodeWithPosition.y - 60,
-          },
-        };
-      }),
-      edges,
-    };
-  }, []);
+	const significantPathways = pathways.filter(
+		(p) => (p["p-value"] || p["p_value"] || 1) < 0.05,
+	).length;
+	const totalPathways = pathways.length;
 
-  // Memoized layout application
-  const applyLayout = useCallback((layoutType: string) => {
-    if (nodes.length === 0) return;
+	return (
+		<Box sx={{ height: "100%", width: "100%" }}>
+			<Paper sx={{ p: 2, mb: 2 }}>
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+						mb: 2,
+					}}
+				>
+					<Typography variant="h6" component="h2">
+						Pathways Tree View
+					</Typography>
+					<Box>
+						<Tooltip title="Settings">
+							<IconButton onClick={() => setSettingsOpen(true)}>
+								<SettingsIcon />
+							</IconButton>
+						</Tooltip>
+					</Box>
+				</Box>
 
-    let direction = 'TB';
-    if (layoutType === 'hierarchical') {
-      direction = 'TB';
-    } else if (layoutType === 'circular') {
-      // For circular layout, we'll use a different approach
-      const centerX = 400;
-      const centerY = 300;
-      const radius = 200;
-      const angleStep = (2 * Math.PI) / nodes.length;
-      
-      const newNodes = nodes.map((node, index) => ({
-        ...node,
-        position: {
-          x: centerX + radius * Math.cos(index * angleStep),
-          y: centerY + radius * Math.sin(index * angleStep),
-        },
-      }));
-      
-      setNodes(newNodes);
-      return;
-    }
+				<Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+					<Chip
+						label={`${totalPathways} total pathways`}
+						color="primary"
+						size="small"
+						icon={<AccountTreeIcon />}
+					/>
+					<Chip
+						label={`${significantPathways} significant`}
+						color="success"
+						size="small"
+						icon={<TrendingUpIcon />}
+					/>
+					<Chip
+						label={`${treeData.length} root pathways`}
+						color="secondary"
+						size="small"
+						icon={<HubIcon />}
+					/>
+					<Chip
+						label={`Sorted by ${settings.sortBy}`}
+						variant="outlined"
+						size="small"
+					/>
+				</Box>
+			</Paper>
 
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges, direction);
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
-  }, [nodes, edges, getLayoutedElements, setNodes, setEdges]);
+			<Paper sx={{ height: "800px", overflow: "auto" }}>
+				<List>
+					{treeData.map((node) => (
+						<TreeNodeComponent
+							key={node.id}
+							node={node}
+							settings={settings}
+							expandedNodes={expandedNodes}
+							onToggle={handleNodeToggle}
+							onNodeClick={handleNodeClick}
+						/>
+					))}
+				</List>
+			</Paper>
 
-  // Memoized node generation
-  const generateNodes = useCallback((pathways: Pathway[], maxNodes: number): HierarchyNode[] => {
-    return pathways.slice(0, maxNodes).map((pathway, index) => {
-      const nodeId = `pathway-${index}`;
-      const pValue = pathway['P-value'] || pathway['p_value'] || pathway['pvalue'];
-      const fdr = pathway['FDR'] || pathway['fdr'];
-      const genes = pathway['Leading edge genes'] || pathway['genes'] || [];
+			{/* Settings Dialog */}
+			<Dialog
+				open={settingsOpen}
+				onClose={() => setSettingsOpen(false)}
+				maxWidth="sm"
+				fullWidth
+			>
+				<DialogTitle>Tree View Settings</DialogTitle>
+				<DialogContent>
+					<Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+						<FormControl fullWidth>
+							<InputLabel>Sort By</InputLabel>
+							<Select
+								value={settings.sortBy}
+								onChange={(e) => handleSettingsChange("sortBy", e.target.value)}
+								label="Sort By"
+							>
+								<MenuItem value="name">Name</MenuItem>
+								<MenuItem value="pvalue">P-Value</MenuItem>
+								<MenuItem value="fdr">FDR</MenuItem>
+								<MenuItem value="es">Enrichment Score</MenuItem>
+								<MenuItem value="nes">Normalized ES</MenuItem>
+							</Select>
+						</FormControl>
 
-      return {
-        id: nodeId,
-        type: 'default',
-        position: { x: 0, y: 0 }, // Will be calculated by layout
-        data: {
-          label: pathway['Pathway'] || pathway['pathway'] || `Pathway ${index + 1}`,
-          pathway,
-          pValue: typeof pValue === 'number' ? pValue : parseFloat(pValue) || 0,
-          fdr: typeof fdr === 'number' ? fdr : parseFloat(fdr) || 0,
-          genes: Array.isArray(genes) ? genes : typeof genes === 'string' ? genes.split(',').map(g => g.trim()) : [],
-        },
-      };
-    });
-  }, []);
+						<FormControl fullWidth>
+							<InputLabel>Sort Direction</InputLabel>
+							<Select
+								value={settings.sortDirection}
+								onChange={(e) =>
+									handleSettingsChange("sortDirection", e.target.value)
+								}
+								label="Sort Direction"
+							>
+								<MenuItem value="asc">Ascending</MenuItem>
+								<MenuItem value="desc">Descending</MenuItem>
+							</Select>
+						</FormControl>
 
-  // Memoized flow elements generation with performance tracking
-  const flowElements = useMemo(() => {
-    const startTime = performance.now();
-    
-    if (pathways.length === 0) return { nodes: [], edges: [] };
+						<Divider />
 
-    const newNodes = generateNodes(pathways, settings.maxNodes);
-    const newEdges = generateHierarchicalEdges(newNodes, settings.maxEdges);
+						<Typography variant="subtitle2" gutterBottom>
+							Display Options
+						</Typography>
 
-    const endTime = performance.now();
-    setRenderTime(endTime - startTime);
+						<FormControlLabel
+							control={
+								<Switch
+									checked={settings.showPValues}
+									onChange={(e) =>
+										handleSettingsChange("showPValues", e.target.checked)
+									}
+								/>
+							}
+							label="Show P-Values"
+						/>
 
-    return { nodes: newNodes, edges: newEdges };
-  }, [pathways, settings.maxNodes, settings.maxEdges, generateNodes]);
+						<FormControlLabel
+							control={
+								<Switch
+									checked={settings.showFDR}
+									onChange={(e) =>
+										handleSettingsChange("showFDR", e.target.checked)
+									}
+								/>
+							}
+							label="Show FDR"
+						/>
 
-  // Initialize flow elements only when they change
-  useEffect(() => {
-    setNodes(flowElements.nodes);
-    setEdges(flowElements.edges);
-  }, [flowElements, setNodes, setEdges]);
+						<FormControlLabel
+							control={
+								<Switch
+									checked={settings.showES}
+									onChange={(e) =>
+										handleSettingsChange("showES", e.target.checked)
+									}
+								/>
+							}
+							label="Show Enrichment Score"
+						/>
 
-  // Apply layout only when necessary
-  useEffect(() => {
-    if (nodes.length > 0) {
-      // Debounce layout application
-      const timeoutId = setTimeout(() => applyLayout(settings.layout), 150);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [nodes.length, settings.layout, applyLayout]);
+						<FormControlLabel
+							control={
+								<Switch
+									checked={settings.showNES}
+									onChange={(e) =>
+										handleSettingsChange("showNES", e.target.checked)
+									}
+								/>
+							}
+							label="Show Normalized ES"
+						/>
 
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
+						<FormControlLabel
+							control={
+								<Switch
+									checked={settings.showGeneCount}
+									onChange={(e) =>
+										handleSettingsChange("showGeneCount", e.target.checked)
+									}
+								/>
+							}
+							label="Show Gene Count"
+						/>
 
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    setSelectedNode(node as HierarchyNode);
-    setNodeDetailsOpen(true);
-  }, []);
+						<FormControlLabel
+							control={
+								<Switch
+									checked={settings.showPathwaySize}
+									onChange={(e) =>
+										handleSettingsChange("showPathwaySize", e.target.checked)
+									}
+								/>
+							}
+							label="Show Pathway Size"
+						/>
 
-  const handleSettingsChange = useCallback((key: string, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  }, []);
+						<FormControlLabel
+							control={
+								<Switch
+									checked={settings.showGenes}
+									onChange={(e) =>
+										handleSettingsChange("showGenes", e.target.checked)
+									}
+								/>
+							}
+							label="Show Gene Lists"
+						/>
+					</Box>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setSettingsOpen(false)}>Close</Button>
+				</DialogActions>
+			</Dialog>
 
-  if (pathways.length === 0) {
-    return (
-      <Box textAlign="center" py={4}>
-        <Typography color="text.secondary">
-          No pathways to display in hierarchy.
-        </Typography>
-      </Box>
-    );
-  }
+			{/* Node Details Dialog */}
+			<Dialog
+				open={nodeDetailsOpen}
+				onClose={() => setNodeDetailsOpen(false)}
+				maxWidth="md"
+				fullWidth
+			>
+				<DialogTitle>
+					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+						<InfoIcon />
+						Pathway Details
+					</Box>
+				</DialogTitle>
+				<DialogContent>
+					{selectedNode && (
+						<Box sx={{ mt: 2 }}>
+							<Typography variant="h6" gutterBottom>
+								{selectedNode.pathway["Pathway"] ||
+									selectedNode.pathway["pathway"]}
+							</Typography>
 
-  return (
-    <Box sx={{ height: '1000px', width: '100%' }}>
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" component="h2">
-            Pathways Hierarchy (Network)
-          </Typography>
-          <Box>
-            <Tooltip title="Settings">
-              <IconButton onClick={() => setSettingsOpen(true)}>
-                <SettingsIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Apply Layout">
-              <IconButton onClick={() => applyLayout(settings.layout)}>
-                <FitScreenIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-        
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Chip 
-            label={`${nodes.length} pathways`} 
-            color="primary" 
-            size="small" 
-          />
-          <Chip 
-            label={`${edges.length} parent-child relationships`} 
-            color="secondary" 
-            size="small" 
-          />
-          <Chip 
-            label={`${settings.layout} layout`} 
-            variant="outlined" 
-            size="small" 
-          />
-          {renderTime > 0 && (
-            <Chip 
-              label={`${renderTime.toFixed(1)}ms render`} 
-              color={renderTime < 16 ? 'success' : renderTime < 33 ? 'warning' : 'error'}
-              size="small" 
-            />
-          )}
-        </Box>
-      </Paper>
+							<Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
+								<Chip
+									label={`P-value: ${(selectedNode.pathway["p-value"] || selectedNode.pathway["p_value"] || 1).toExponential(2)}`}
+									color={
+										(selectedNode.pathway["p-value"] ||
+											selectedNode.pathway["p_value"] ||
+											1) < 0.05
+											? "success"
+											: "default"
+									}
+								/>
+								<Chip
+									label={`FDR: ${(selectedNode.pathway["FDR"] || selectedNode.pathway["fdr"] || 1).toExponential(2)}`}
+									color={
+										(selectedNode.pathway["FDR"] ||
+											selectedNode.pathway["fdr"] ||
+											1) < 0.05
+											? "success"
+											: "default"
+									}
+								/>
+								<Chip
+									label={`ES: ${(selectedNode.pathway["ES"] || selectedNode.pathway["es"] || 0).toFixed(3)}`}
+									color={
+										(selectedNode.pathway["ES"] ||
+											selectedNode.pathway["es"] ||
+											0) > 0.2
+											? "success"
+											: "default"
+									}
+								/>
+								<Chip
+									label={`NES: ${(selectedNode.pathway["NES"] || selectedNode.pathway["nes"] || 0).toFixed(3)}`}
+									color={
+										(selectedNode.pathway["NES"] ||
+											selectedNode.pathway["nes"] ||
+											0) > 1.5
+											? "success"
+											: "default"
+									}
+								/>
+								<Chip
+									label={`${selectedNode.pathway["Number of input genes"] || 0} input genes`}
+									color="primary"
+								/>
+								<Chip
+									label={`Pathway size: ${selectedNode.pathway["Pathway size"] || 0}`}
+									color="secondary"
+								/>
+							</Box>
 
-      <Paper sx={{ height: '800px', position: 'relative' }}>
-        <ReactFlowProvider>
-          <ReactFlow
-            ref={reactFlowRef}
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            fitView
-            attributionPosition="bottom-left"
-            // Performance optimizations
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable={true}
-            selectNodesOnDrag={false}
-            // Additional performance settings
-            minZoom={0.1}
-            maxZoom={2}
-            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-            proOptions={{ hideAttribution: true }}
-          >
-            <Background />
-            <Controls />
-          </ReactFlow>
-        </ReactFlowProvider>
-        
+							{selectedNode.children.length > 0 && (
+								<Box sx={{ mb: 2 }}>
+									<Typography variant="subtitle1" gutterBottom>
+										Child Pathways ({selectedNode.children.length}):
+									</Typography>
+									<Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+										{selectedNode.children.map((child) => (
+											<Chip
+												key={child.id}
+												label={
+													child.pathway["Pathway"] || child.pathway["pathway"]
+												}
+												size="small"
+												variant="outlined"
+												onClick={() => {
+													setSelectedNode(child);
+												}}
+												sx={{ cursor: "pointer" }}
+											/>
+										))}
+									</Box>
+								</Box>
+							)}
 
-      </Paper>
+							<Box>
+								<Typography variant="subtitle1" gutterBottom>
+									Leading Edge Genes:
+								</Typography>
+								<Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+									{(() => {
+										const genes =
+											selectedNode.pathway["Leading edge genes"] ||
+											selectedNode.pathway["genes"] ||
+											"";
+										const geneList =
+											typeof genes === "string"
+												? genes.split(",").map((g) => g.trim())
+												: Array.isArray(genes)
+													? genes
+													: [];
+										return (
+											<>
+												{geneList
+													.slice(0, 20)
+													.map((gene: string, index: number) => (
+														<Chip
+															key={`${selectedNode.id}-gene-${index}`}
+															label={gene}
+															size="small"
+															variant="outlined"
+														/>
+													))}
+												{geneList.length > 20 && (
+													<Chip
+														label={`+${geneList.length - 20} more`}
+														size="small"
+													/>
+												)}
+											</>
+										);
+									})()}
+								</Box>
+							</Box>
 
-      {/* Settings Dialog */}
-      <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Hierarchical Network Settings</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <FormControl fullWidth>
-              <InputLabel>Layout Type</InputLabel>
-              <Select
-                value={settings.layout}
-                onChange={(e) => handleSettingsChange('layout', e.target.value)}
-                label="Layout Type"
-              >
-                <MenuItem value="hierarchical">Hierarchical</MenuItem>
-                <MenuItem value="force">Force-Directed</MenuItem>
-                <MenuItem value="circular">Circular</MenuItem>
-              </Select>
-            </FormControl>
-
-            <Box>
-              <Typography gutterBottom>Max Nodes: {settings.maxNodes}</Typography>
-              <Slider
-                value={settings.maxNodes}
-                onChange={(_, value) => handleSettingsChange('maxNodes', value)}
-                min={10}
-                max={100}
-                step={5}
-                marks
-                valueLabelDisplay="auto"
-              />
-            </Box>
-
-            <Box>
-              <Typography gutterBottom>Max Edges: {settings.maxEdges}</Typography>
-              <Slider
-                value={settings.maxEdges}
-                onChange={(_, value) => handleSettingsChange('maxEdges', value)}
-                min={50}
-                max={500}
-                step={50}
-                marks
-                valueLabelDisplay="auto"
-              />
-            </Box>
-
-            <Box>
-              <Typography gutterBottom>Node Spacing: {settings.nodeSpacing}</Typography>
-              <Slider
-                value={settings.nodeSpacing}
-                onChange={(_, value) => handleSettingsChange('nodeSpacing', value)}
-                min={100}
-                max={400}
-                step={50}
-                marks
-                valueLabelDisplay="auto"
-              />
-            </Box>
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={settings.showPValues}
-                  onChange={(e) => handleSettingsChange('showPValues', e.target.checked)}
-                />
-              }
-              label="Show P-Values"
-            />
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={settings.showFDR}
-                  onChange={(e) => handleSettingsChange('showFDR', e.target.checked)}
-                />
-              }
-              label="Show FDR"
-            />
-
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={settings.showGenes}
-                  onChange={(e) => handleSettingsChange('showGenes', e.target.checked)}
-                />
-              }
-              label="Show Gene Lists"
-            />
-
-
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSettingsOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Node Details Dialog */}
-      <Dialog open={nodeDetailsOpen} onClose={() => setNodeDetailsOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <InfoIcon />
-            Pathway Details
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {selectedNode && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                {selectedNode.data.label}
-              </Typography>
-              
-              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                <Chip 
-                  label={`P-value: ${selectedNode.data.pValue?.toExponential(2) || 'N/A'}`}
-                  color={(selectedNode.data.pValue || 1) < 0.05 ? 'success' : 'default'}
-                />
-                <Chip 
-                  label={`FDR: ${selectedNode.data.fdr?.toExponential(2) || 'N/A'}`}
-                  color={(selectedNode.data.fdr || 1) < 0.05 ? 'success' : 'default'}
-                />
-                <Chip 
-                  label={`${selectedNode.data.genes?.length || 0} genes`}
-                  color="primary"
-                />
-              </Box>
-
-              {settings.showGenes && selectedNode.data.genes && selectedNode.data.genes.length > 0 && (
-                <Box>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Leading Edge Genes:
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selectedNode.data.genes.slice(0, 20).map((gene: string, index: number) => (
-                      <Chip key={index} label={gene} size="small" variant="outlined" />
-                    ))}
-                    {selectedNode.data.genes.length > 20 && (
-                      <Chip label={`+${selectedNode.data.genes.length - 20} more`} size="small" />
-                    )}
-                  </Box>
-                </Box>
-              )}
-
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  All Pathway Data:
-                </Typography>
-                <Box sx={{ maxHeight: '200px', overflow: 'auto' }}>
-                  {Object.entries(selectedNode.data.pathway).map(([key, value]) => (
-                    <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                        {key}:
-                      </Typography>
-                      <Typography variant="body2" sx={{ ml: 2, maxWidth: '60%' }}>
-                        {String(value)}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setNodeDetailsOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  );
+							<Box sx={{ mt: 2 }}>
+								<Typography variant="subtitle2" gutterBottom>
+									All Pathway Data:
+								</Typography>
+								<Box sx={{ maxHeight: "200px", overflow: "auto" }}>
+									{Object.entries(selectedNode.pathway).map(([key, value]) => (
+										<Box
+											key={key}
+											sx={{
+												display: "flex",
+												justifyContent: "space-between",
+												py: 0.5,
+											}}
+										>
+											<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+												{key}:
+											</Typography>
+											<Typography
+												variant="body2"
+												sx={{ ml: 2, maxWidth: "60%" }}
+											>
+												{String(value)}
+											</Typography>
+										</Box>
+									))}
+								</Box>
+							</Box>
+						</Box>
+					)}
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setNodeDetailsOpen(false)}>Close</Button>
+				</DialogActions>
+			</Dialog>
+		</Box>
+	);
 };
 
-export default PathwaysHierarchy; 
+export default PathwaysHierarchy;

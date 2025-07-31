@@ -71,6 +71,16 @@ const themeOptions: ThemeOptions = {
 					color: "#5A5F5F",
 					borderColor: "rgb(196,196,196)",
 				},
+				contained: {
+					backgroundColor: SECONDARY,
+					color: "#fff",
+					borderColor: SECONDARY,
+					"&:hover": {
+						backgroundColor: darken(0.2, SECONDARY),
+						borderColor: darken(0.2, SECONDARY),
+						color: "#fff",
+					},
+				},
 			},
 		},
 		MuiMenu: {

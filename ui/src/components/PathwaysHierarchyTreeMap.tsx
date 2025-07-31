@@ -56,7 +56,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({ pat
   const plotContainerRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<any>(null);
   const [settings, setSettings] = useState({
-    maxPathways: 50,
+    maxPathways: pathways.length,
     showPValues: true,
     showFDR: true,
     showGenes: false,
