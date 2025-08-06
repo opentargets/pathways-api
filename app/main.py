@@ -7,6 +7,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 from app.config import get_config
 from app.routers.pathways import router as pathways_router
+from app.routers.umap_router import router 
 
 import logging
 
@@ -37,6 +38,8 @@ else:
 
 # Include routers
 app.include_router(pathways_router)
+app.include_router(router, prefix="/umap")
+
 
 # Mount static files for the React app
 app.mount("/assets", StaticFiles(directory="ui/dist/assets"), name="assets")
