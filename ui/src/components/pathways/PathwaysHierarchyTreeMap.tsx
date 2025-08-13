@@ -38,6 +38,23 @@ import {
 } from "@mui/icons-material";
 import type { Pathway } from "../../lib/api";
 
+// Prioritization color palette for -1 to 1 scale (same as sunburst)
+const PRIORITISATION_COLORS = [
+	"#a01813", // -1 (red)
+	"#bc3a19",
+	"#d65a1f",
+	"#e08145",
+	"#e3a772",
+	"#e6ca9c",
+	"#eceada", // 0 (neutral)
+	"#c5d2c1",
+	"#9ebaa8",
+	"#78a290",
+	"#528b78",
+	"#2f735f",
+	"#2e5943", // 1 (green)
+];
+
 interface PathwaysHierarchyTreeMapProps {
 	pathways: Pathway[];
 }
@@ -68,7 +85,6 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 		showPValues: true,
 		showFDR: true,
 		showGenes: false,
-		colorBy: "pvalue" as "pvalue" | "fdr" | "genes",
 		layout: "squarify" as
 			| "squarify"
 			| "binary"
@@ -77,30 +93,18 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 			| "slice-dice",
 	});
 
-	// Memoized color scale generation
-	const getColorScale = useCallback(
-		(values: number[], type: "pvalue" | "fdr" | "genes") => {
-			if (type === "genes") {
-				// Color by number of genes (gradient)
-				const maxGenes = Math.max(...values);
-				return values.map((value) => {
-					const normalized = value / maxGenes;
-					return `rgb(${Math.round(255 * (1 - normalized))}, ${Math.round(255 * normalized)}, 100)`;
-				});
-			} else {
-				// Color by p-value or FDR (log scale)
-				const logValues = values.map((v) => -Math.log10(v));
-				const maxLog = Math.max(...logValues);
-				return values.map((value, index) => {
-					const normalized = logValues[index] / maxLog;
-					if (normalized > 0.7) return "#4caf50"; // Green for significant
-					if (normalized > 0.4) return "#ff9800"; // Orange for moderate
-					return "#f44336"; // Red for not significant
-				});
-			}
-		},
-		[],
-	);
+	// Get color based on NES using prioritization colors
+	const getColorByNES = useCallback((nes: number, allNESValues: number[]) => {
+		const maxNES = Math.max(...allNESValues);
+		const minNES = Math.min(...allNESValues);
+		const normalized = ((nes || 0) - minNES) / (maxNES - minNES);
+		const colorIndex = Math.floor(
+			normalized * (PRIORITISATION_COLORS.length - 1),
+		);
+		return PRIORITISATION_COLORS[
+			Math.max(0, Math.min(colorIndex, PRIORITISATION_COLORS.length - 1))
+		];
+	}, []);
 
 	// Build hierarchy from parent pathway relationships
 	const buildHierarchy = useCallback((pathways: Pathway[]) => {
@@ -139,6 +143,13 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 		const { pathwayMap, childrenMap, rootPathways } =
 			buildHierarchy(limitedPathways);
 
+		// Collect all NES values for color scaling
+		const allNESValues: number[] = [];
+		limitedPathways.forEach((pathway) => {
+			const nes = pathway["NES"] || pathway["nes"] || 0;
+			allNESValues.push(nes);
+		});
+
 		const nodes: TreeMapNode = {
 			ids: [],
 			labels: [],
@@ -158,7 +169,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 		nodes.parents.push("");
 		nodes.values.push(limitedPathways.length);
 		nodes.customdata.push({ type: "root" });
-		nodes.marker.colors.push("#2196f3");
+		nodes.marker.colors.push("#E6E6E6");
 
 		// Add root pathways (those without parents)
 		rootPathways.forEach((pathway, index) => {
@@ -166,6 +177,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 			const pValue =
 				pathway["p-value"] || pathway["p_value"] || pathway["pvalue"];
 			const fdr = pathway["FDR"] || pathway["fdr"];
+			const nes = pathway["NES"] || pathway["nes"];
 			const genes = pathway["Leading edge genes"] || pathway["genes"] || [];
 			const geneCount = Array.isArray(genes)
 				? genes.length
@@ -188,6 +200,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 				pathway,
 				pValue,
 				fdr,
+				nes,
 				geneCount,
 				genes: Array.isArray(genes)
 					? genes
@@ -196,22 +209,8 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 						: [],
 			});
 
-			// Color based on settings
-			if (settings.colorBy === "genes") {
-				nodes.marker.colors.push(
-					`rgb(${Math.round(255 * (1 - geneCount / 50))}, ${Math.round((255 * geneCount) / 50)}, 100)`,
-				);
-			} else if (settings.colorBy === "fdr") {
-				const normalized = -Math.log10(fdr || 1) / 3;
-				if (normalized > 0.7) nodes.marker.colors.push("#4caf50");
-				else if (normalized > 0.4) nodes.marker.colors.push("#ff9800");
-				else nodes.marker.colors.push("#f44336");
-			} else {
-				const normalized = -Math.log10(pValue || 1) / 3;
-				if (normalized > 0.7) nodes.marker.colors.push("#4caf50");
-				else if (normalized > 0.4) nodes.marker.colors.push("#ff9800");
-				else nodes.marker.colors.push("#f44336");
-			}
+			// Color based on NES using prioritization colors
+			nodes.marker.colors.push(getColorByNES(nes, allNESValues));
 		});
 
 		// Add child pathways
@@ -230,6 +229,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 				const pValue =
 					pathway["p-value"] || pathway["p_value"] || pathway["pvalue"];
 				const fdr = pathway["FDR"] || pathway["fdr"];
+				const nes = pathway["NES"] || pathway["nes"];
 				const genes = pathway["Leading edge genes"] || pathway["genes"] || [];
 				const geneCount = Array.isArray(genes)
 					? genes.length
@@ -250,6 +250,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 					pathway,
 					pValue,
 					fdr,
+					nes,
 					geneCount,
 					genes: Array.isArray(genes)
 						? genes
@@ -258,22 +259,8 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 							: [],
 				});
 
-				// Color based on settings
-				if (settings.colorBy === "genes") {
-					nodes.marker.colors.push(
-						`rgb(${Math.round(255 * (1 - geneCount / 50))}, ${Math.round((255 * geneCount) / 50)}, 100)`,
-					);
-				} else if (settings.colorBy === "fdr") {
-					const normalized = -Math.log10(fdr || 1) / 3;
-					if (normalized > 0.7) nodes.marker.colors.push("#4caf50");
-					else if (normalized > 0.4) nodes.marker.colors.push("#ff9800");
-					else nodes.marker.colors.push("#f44336");
-				} else {
-					const normalized = -Math.log10(pValue || 1) / 3;
-					if (normalized > 0.7) nodes.marker.colors.push("#4caf50");
-					else if (normalized > 0.4) nodes.marker.colors.push("#ff9800");
-					else nodes.marker.colors.push("#f44336");
-				}
+				// Color based on NES using prioritization colors
+				nodes.marker.colors.push(getColorByNES(nes, allNESValues));
 
 				// Recursively add children of this pathway
 				addChildren(childId, childId);
@@ -291,7 +278,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 			"<b>%{label}</b><br>" + "Area: %{value}<br>" + "<extra></extra>";
 
 		return nodes;
-	}, [pathways, settings.maxPathways, settings.colorBy, buildHierarchy]);
+	}, [pathways, settings.maxPathways, buildHierarchy, getColorByNES]);
 
 	// Plotly layout configuration
 	const layout = useMemo(
@@ -450,11 +437,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 						color="secondary"
 						size="small"
 					/>
-					<Chip
-						label={`Color by: ${settings.colorBy}`}
-						variant="outlined"
-						size="small"
-					/>
+					<Chip label="Color by: NES" variant="outlined" size="small" />
 					<Chip label="TreeMap Chart" variant="outlined" size="small" />
 				</Box>
 
@@ -481,20 +464,12 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 				<DialogTitle>TreeMap Hierarchy Settings</DialogTitle>
 				<DialogContent>
 					<Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-						<FormControl fullWidth>
-							<InputLabel>Color By</InputLabel>
-							<Select
-								value={settings.colorBy}
-								onChange={(e) =>
-									handleSettingsChange("colorBy", e.target.value)
-								}
-								label="Color By"
-							>
-								<MenuItem value="pvalue">P-Value</MenuItem>
-								<MenuItem value="fdr">FDR</MenuItem>
-								<MenuItem value="genes">Gene Count</MenuItem>
-							</Select>
-						</FormControl>
+						<Alert severity="info" sx={{ mb: 2 }}>
+							<Typography variant="body2">
+								Colors are based on Normalized Enrichment Score (NES) using the
+								same color palette as the sunburst visualization.
+							</Typography>
+						</Alert>
 
 						<FormControl fullWidth>
 							<InputLabel>Layout Algorithm</InputLabel>
@@ -664,9 +639,9 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 													: []
 											)
 												.slice(0, 20)
-												.map((gene: string, index: number) => (
+												.map((gene: string) => (
 													<Chip
-														key={index}
+														key={`gene-${gene}`}
 														label={gene}
 														size="small"
 														variant="outlined"
