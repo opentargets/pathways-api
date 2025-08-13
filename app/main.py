@@ -8,6 +8,7 @@ from starlette.responses import JSONResponse
 from app.config import get_config
 from app.routers.pathways import router as pathways_router
 from app.routers.umap_router import router 
+from app.routers import gsea
 
 import logging
 
@@ -37,6 +38,7 @@ else:
     )
 
 # Include routers
+app.include_router(gsea.router, prefix="/api", tags=["GSEA"])
 app.include_router(pathways_router)
 app.include_router(router, prefix="/umap")
 
