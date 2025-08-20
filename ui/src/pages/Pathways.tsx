@@ -7,27 +7,67 @@ import {
 	InputLabel,
 	Select,
 	MenuItem,
-	Slider,
+	Button,
+	Alert,
 } from "@mui/material";
-import { usePathways } from "../hooks/useApi";
+import { CloudUpload } from "@mui/icons-material";
+import { useGsea, useGmtLibraries } from "../hooks/useApi";
 import PathwaysResults from "../components/PathwaysResults";
 
 const Pathways: React.FC = () => {
-	const [diseaseId, setDiseaseId] = useState("EFO_0000094");
-	const [library] = useState("Reactome_Pathways_2025_diy_v2");
-	const [fdrLt, setFdrLt] = useState<number>(0.5);
-	const [hideLeadingEdge, setHideLeadingEdge] = useState(false);
+	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [library, setLibrary] = useState<string>("");
+	const [fileError, setFileError] = useState<string>("");
+
+	const {
+		data: gmtLibraries,
+		loading: librariesLoading,
+		error: librariesError,
+	} = useGmtLibraries();
 
 	const {
 		data: pathways,
 		loading,
 		error,
-	} = usePathways({
-		diseaseId,
-		library,
-		fdr_lt: fdrLt,
-		hide_leading_edge: hideLeadingEdge,
-	});
+		execute: runGsea,
+	} = useGsea();
+
+	// Set default library when libraries are loaded
+	React.useEffect(() => {
+		if (gmtLibraries && gmtLibraries.length > 0 && !library) {
+			setLibrary(gmtLibraries[0]);
+		}
+	}, [gmtLibraries, library]);
+
+	const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		if (file) {
+			if (file.name.endsWith('.tsv')) {
+				setSelectedFile(file);
+				setFileError("");
+			} else {
+				setFileError("Please select a .tsv file");
+				setSelectedFile(null);
+			}
+		}
+	};
+
+	const handleSubmit = async () => {
+		if (!selectedFile) {
+			setFileError("Please select a TSV file");
+			return;
+		}
+
+		if (!library) {
+			setFileError("Please select a GMT library");
+			return;
+		}
+
+		await runGsea({
+			tsv_file: selectedFile,
+			gmt_name: library,
+		});
+	};
 
 	return (
 		<Container maxWidth="xl" sx={{ py: 4 }}>
@@ -37,54 +77,74 @@ const Pathways: React.FC = () => {
 				gutterBottom
 				sx={{ fontWeight: "bold", color: "secondary.main", mb: 4 }}
 			>
-				Pathways Analysis
+				GSEA Analysis
 			</Typography>
 
 			<Box sx={{ mb: 4 }}>
 				<Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
 					<Box sx={{ flex: "1 1 300px", minWidth: 0 }}>
 						<FormControl fullWidth>
-							<InputLabel>Disease ID</InputLabel>
+							<InputLabel>GMT Library</InputLabel>
 							<Select
-								value={diseaseId}
-								label="Disease ID"
-								onChange={(e) => setDiseaseId(e.target.value)}
+								value={library}
+								label="GMT Library"
+								onChange={(e) => setLibrary(e.target.value)}
+								disabled={librariesLoading}
 							>
-								<MenuItem value="EFO_0000094">EFO_0000094</MenuItem>
-								<MenuItem value="EFO_0000095">EFO_0000095</MenuItem>
-								<MenuItem value="EFO_0000096">EFO_0000096</MenuItem>
-								<MenuItem value="EFO_0000178">EFO_0000178</MenuItem>
-								<MenuItem value="EFO_0000181">EFO_0000181</MenuItem>
-								<MenuItem value="EFO_0000182">EFO_0000182</MenuItem>
-								<MenuItem value="EFO_0000195">EFO_0000195</MenuItem>
-								<MenuItem value="EFO_0000199">EFO_0000199</MenuItem>
-								<MenuItem value="EFO_0000200">EFO_0000200</MenuItem>
-								<MenuItem value="EFO_0000209">EFO_0000209</MenuItem>
+								{gmtLibraries?.map((lib) => (
+									<MenuItem key={lib} value={lib}>
+										{lib}
+									</MenuItem>
+								))}
 							</Select>
+							{librariesError && (
+								<Alert severity="error" sx={{ mt: 1 }}>
+									Failed to load GMT libraries
+								</Alert>
+							)}
 						</FormControl>
 					</Box>
 
 					<Box sx={{ flex: "1 1 300px", minWidth: 0 }}>
-						<Typography gutterBottom>FDR Threshold</Typography>
-						<Slider
-							value={fdrLt}
-							onChange={(_, value) => setFdrLt(value as number)}
-							min={0}
-							max={1}
-							step={0.1}
-							marks
-							valueLabelDisplay="auto"
+						<Typography gutterBottom>TSV File Upload</Typography>
+						<input
+							accept=".tsv"
+							style={{ display: 'none' }}
+							id="tsv-file-upload"
+							type="file"
+							onChange={handleFileSelect}
 						/>
-						<Typography variant="body2" color="text.secondary">
-							Current: {fdrLt}
+						<label htmlFor="tsv-file-upload">
+							<Button
+								variant="outlined"
+								component="span"
+								startIcon={<CloudUpload />}
+								fullWidth
+							>
+								{selectedFile ? selectedFile.name : "Choose TSV File"}
+							</Button>
+						</label>
+						{fileError && (
+							<Alert severity="error" sx={{ mt: 1 }}>
+								{fileError}
+							</Alert>
+						)}
+						<Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+							File must have 2 columns: symbol and globalScore
 						</Typography>
 					</Box>
 
 					<Box sx={{ flex: "1 1 300px", minWidth: 0 }}>
-						<Typography gutterBottom>Library</Typography>
-						<Typography variant="body2" color="text.secondary">
-							{library}
-						</Typography>
+						<Button
+							variant="contained"
+							color="primary"
+							onClick={handleSubmit}
+							disabled={!selectedFile || !library || loading}
+							fullWidth
+							sx={{ mt: 4 }}
+						>
+							{loading ? "Running GSEA..." : "Run GSEA Analysis"}
+						</Button>
 					</Box>
 				</Box>
 			</Box>

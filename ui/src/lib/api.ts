@@ -9,6 +9,11 @@ export interface PathwaysParams {
   hide_leading_edge?: boolean;
 }
 
+export interface GseaParams {
+  tsv_file: File;
+  gmt_name: string;
+}
+
 export interface ApiResponse<T> {
   data: T;
   message?: string;
@@ -27,7 +32,7 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const defaultOptions: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -58,6 +63,23 @@ class ApiClient {
         status: 'error',
       };
     }
+  }
+
+  // GSEA endpoint
+  async runGsea(params: GseaParams): Promise<ApiResponse<Pathway[]>> {
+    const formData = new FormData();
+    formData.append('tsv_file', params.tsv_file);
+
+    return this.request<Pathway[]>(`/api/gsea?gmt_name=${encodeURIComponent(params.gmt_name)}`, {
+      method: 'POST',
+      body: formData,
+      headers: {}, // Let the browser set the Content-Type for FormData
+    });
+  }
+
+  // Get available GMT libraries
+  async getGmtLibraries(): Promise<ApiResponse<string[]>> {
+    return this.request<string[]>('/api/gsea/libraries');
   }
 
   // Pathways endpoint matching the FastAPI service
