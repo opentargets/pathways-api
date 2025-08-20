@@ -39,8 +39,19 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     gmt_file = gmt_files[gmt_name]
     library_sets = load_custom_gmt(gmt_file)
 
+    # --- Load input file safely ---
     df = pd.read_csv(input_tsv, sep="\t")
-    df = df.rename(columns={0: "symbol", 1: "globalScore"})
+
+    # If no headers are present, pandas will assign numeric columns 0,1,...
+    if set(df.columns) == set(range(len(df.columns))):
+        df = df.rename(columns={0: "symbol", 1: "globalScore"})
+
+    # Ensure required columns exist
+    if not {"symbol", "globalScore"}.issubset(df.columns):
+        raise ValueError("Input file must contain 'symbol' and 'globalScore' columns.")
+
+    # Keep only the necessary columns
+    df = df[["symbol", "globalScore"]].copy()
     df = df.sort_values("globalScore", ascending=False)
 
     res_df = blitz.gsea(df, library_sets, processes=processes).reset_index(names="Term")
