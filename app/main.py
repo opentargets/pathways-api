@@ -44,7 +44,7 @@ app.include_router(router, prefix="/umap")
 
 
 # Mount static files for the React app
-app.mount("/assets", StaticFiles(directory="ui/dist/assets"), name="assets")
+app.mount("/assets", StaticFiles(directory="./ui/src/assets"), name="assets")
 
 @app.get("/")
 async def root():
