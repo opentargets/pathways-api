@@ -3,23 +3,13 @@ import React, { useEffect, useRef, useMemo } from "react";
 import Plotly from "plotly.js-dist";
 import { Box } from "@mui/material";
 import type { Pathway } from "../../lib/api";
-
-// Prioritization color palette for -1 to 1 scale
-const PRIORITISATION_COLORS = [
-	"#a01813", // -1 (red)
-	"#bc3a19",
-	"#d65a1f",
-	"#e08145",
-	"#e3a772",
-	"#e6ca9c",
-	"#eceada", // 0 (neutral)
-	"#c5d2c1",
-	"#9ebaa8",
-	"#78a290",
-	"#528b78",
-	"#2f735f",
-	"#2e5943", // 1 (green)
-];
+import { buildPathwayHierarchy, getEffectiveRootPathways } from "../../utils/pathwayHierarchy";
+import { 
+	PRIORITISATION_COLORS, 
+	mapToPrioritizationColor, 
+	PLOTLY_COLOR_PALETTES,
+	ROOT_NODE_COLORS
+} from "../../utils/colorPalettes";
 
 interface FlameGraphNode {
 	ids: string[];
@@ -39,7 +29,6 @@ interface SunburstChartProps {
 	maxPathways: number;
 	orientation: "h" | "v";
 	branchvalues: "total" | "remainder";
-	onPathwayClick: (pathway: Pathway) => void;
 }
 
 const SunburstChart: React.FC<SunburstChartProps> = ({
@@ -47,7 +36,6 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 	maxPathways,
 	orientation,
 	branchvalues,
-	onPathwayClick,
 }) => {
 	const plotContainerRef = useRef<HTMLDivElement>(null);
 	const plotRef = useRef<any>(null);
@@ -56,38 +44,9 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 	const flameGraphData = useMemo(() => {
 		if (pathways.length === 0) return null;
 
-		// Build hierarchy from parent pathway relationships
-		const buildHierarchy = (pathways: Pathway[]) => {
-			const pathwayMap = new Map<string, Pathway>();
-			const childrenMap = new Map<string, string[]>();
-			const rootPathways: Pathway[] = [];
-
-			// Create pathway map and collect children
-			pathways.forEach((pathway) => {
-				const id = pathway["ID"] || pathway["id"] || "";
-				pathwayMap.set(id, pathway);
-
-				const parentPathway =
-					pathway["Parent pathway"] || pathway["parent_pathway"] || "";
-				if (parentPathway) {
-					const parents = parentPathway.split(",").map((p: string) => p.trim());
-					parents.forEach((parent: string) => {
-						if (!childrenMap.has(parent)) {
-							childrenMap.set(parent, []);
-						}
-						childrenMap.get(parent)!.push(id);
-					});
-				} else {
-					rootPathways.push(pathway);
-				}
-			});
-
-			return { pathwayMap, childrenMap, rootPathways };
-		};
-
 		const limitedPathways = pathways.slice(0, maxPathways);
-		const { pathwayMap, childrenMap, rootPathways } =
-			buildHierarchy(limitedPathways);
+		const { pathwayMap, childrenMap } = buildPathwayHierarchy(limitedPathways);
+		const rootPathways = getEffectiveRootPathways(limitedPathways);
 
 		const nodes: FlameGraphNode = {
 			ids: [],
@@ -108,7 +67,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 		nodes.parents.push("");
 		nodes.values.push(limitedPathways.length);
 		nodes.customdata.push({ type: "root" });
-		nodes.marker.colors.push("#2196f3");
+		nodes.marker.colors.push(ROOT_NODE_COLORS.primary);
 
 		// Collect all NES values for color scaling
 		const allNESValues: number[] = [];
@@ -165,14 +124,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 			// Color based on NES using prioritization colors
 			const maxNES = Math.max(...allNESValues);
 			const minNES = Math.min(...allNESValues);
-			const normalized = ((nes || 0) - minNES) / (maxNES - minNES);
-			const colorIndex = Math.floor(
-				normalized * (PRIORITISATION_COLORS.length - 1),
-			);
 			nodes.marker.colors.push(
-				PRIORITISATION_COLORS[
-					Math.max(0, Math.min(colorIndex, PRIORITISATION_COLORS.length - 1))
-				],
+				mapToPrioritizationColor(nes || 0, minNES, maxNES)
 			);
 		});
 
@@ -225,14 +178,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 				// Color based on NES using prioritization colors
 				const maxNES = Math.max(...allNESValues);
 				const minNES = Math.min(...allNESValues);
-				const normalized = ((nes || 0) - minNES) / (maxNES - minNES);
-				const colorIndex = Math.floor(
-					normalized * (PRIORITISATION_COLORS.length - 1),
-				);
 				nodes.marker.colors.push(
-					PRIORITISATION_COLORS[
-						Math.max(0, Math.min(colorIndex, PRIORITISATION_COLORS.length - 1))
-					],
+					mapToPrioritizationColor(nes || 0, minNES, maxNES)
 				);
 
 				// Recursively add children of this pathway
@@ -258,7 +205,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 		() => ({
 			width: undefined,
 			height: 700,
-			sunburstcolorway: PRIORITISATION_COLORS,
+			sunburstcolorway: PLOTLY_COLOR_PALETTES.sunburst,
 			extendsunburstcolors: true,
 			margin: { l: 0, r: 0, t: 0, b: 0 },
 			sunburst: {
@@ -297,17 +244,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 				(plotDiv: any) => {
 					plotRef.current = plotDiv;
 
-					// Add click event listener
-					plotDiv.on("plotly_click", (event: any) => {
-						if (event.points && event.points.length > 0) {
-							const point = event.points[0];
-							const customData = point.customdata;
-
-							if (customData && customData.type === "pathway") {
-								onPathwayClick(customData.pathway);
-							}
-						}
-					});
+					// Note: Click events are now handled by tooltips on hover
 				},
 			);
 
@@ -317,7 +254,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 				}
 			};
 		}
-	}, [flameGraphData, layout, config, orientation, onPathwayClick]);
+	}, [flameGraphData, layout, config, orientation]);
 
 	if (pathways.length === 0) {
 		return null;

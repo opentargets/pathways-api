@@ -9,7 +9,6 @@ import FlameGraphHeader from "./FlameGraphHeader";
 import SunburstChart from "./SunburstChart";
 import HorizontalFlameChart from "./HorizontalFlameChart";
 import FlameGraphSettings from "./FlameGraphSettings";
-import PathwayDetailsDialog from "./PathwayDetailsDialog";
 import PathwayFilter, { type PathwayFilters } from "./PathwayFilter";
 
 interface PathwaysFlameGraphProps {
@@ -20,8 +19,6 @@ const PathwaysFlameGraph: React.FC<PathwaysFlameGraphProps> = ({
 	pathways,
 }) => {
 	const [settingsOpen, setSettingsOpen] = useState(false);
-	const [nodeDetailsOpen, setNodeDetailsOpen] = useState(false);
-	const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(null);
 	const [activeTab, setActiveTab] = useState(0);
 
 	// Get NES range for initial filter values
@@ -119,11 +116,7 @@ const PathwaysFlameGraph: React.FC<PathwaysFlameGraphProps> = ({
 		setSettings((prev) => ({ ...prev, [key]: value }));
 	}, []);
 
-	// Handle pathway click
-	const handlePathwayClick = useCallback((pathway: Pathway) => {
-		setSelectedPathway(pathway);
-		setNodeDetailsOpen(true);
-	}, []);
+	// Note: Pathway details are now shown via tooltips on hover
 
 	// Zoom controls
 	const handleZoomIn = useCallback(() => {
@@ -270,7 +263,6 @@ const PathwaysFlameGraph: React.FC<PathwaysFlameGraphProps> = ({
 									maxPathways={settings.maxPathways}
 									orientation={settings.orientation}
 									branchvalues={settings.branchvalues}
-									onPathwayClick={handlePathwayClick}
 								/>
 							</Box>
 						)}
@@ -281,7 +273,6 @@ const PathwaysFlameGraph: React.FC<PathwaysFlameGraphProps> = ({
 								<HorizontalFlameChart
 									pathways={filteredPathways}
 									maxPathways={settings.maxPathways}
-									onPathwayClick={handlePathwayClick}
 								/>
 							</Box>
 						)}
@@ -296,13 +287,6 @@ const PathwaysFlameGraph: React.FC<PathwaysFlameGraphProps> = ({
 					onSettingsChange={handleSettingsChange}
 				/>
 
-				{/* Pathway Details Dialog */}
-				<PathwayDetailsDialog
-					open={nodeDetailsOpen}
-					onClose={() => setNodeDetailsOpen(false)}
-					selectedPathway={selectedPathway}
-					showGenes={settings.showGenes}
-				/>
 			</Box>
 		</Box>
 	);

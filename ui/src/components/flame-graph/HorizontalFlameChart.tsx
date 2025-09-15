@@ -3,23 +3,12 @@ import React, { useEffect, useRef, useMemo } from "react";
 import Plotly from "plotly.js-dist";
 import { Box } from "@mui/material";
 import type { Pathway } from "../../lib/api";
-
-// Prioritization color palette for -1 to 1 scale
-const PRIORITISATION_COLORS = [
-	"#a01813", // -1 (red)
-	"#bc3a19",
-	"#d65a1f",
-	"#e08145",
-	"#e3a772",
-	"#e6ca9c",
-	"#eceada", // 0 (neutral)
-	"#c5d2c1",
-	"#9ebaa8",
-	"#78a290",
-	"#528b78",
-	"#2f735f",
-	"#2e5943", // 1 (green)
-];
+import { buildPathwayHierarchy, getEffectiveRootPathways } from "../../utils/pathwayHierarchy";
+import { 
+	PRIORITISATION_COLORS, 
+	mapToPrioritizationColor,
+	ROOT_NODE_COLORS
+} from "../../utils/colorPalettes";
 
 interface IcicleData {
 	ids: string[];
@@ -45,13 +34,11 @@ interface IcicleData {
 interface HorizontalFlameChartProps {
 	pathways: Pathway[];
 	maxPathways: number;
-	onPathwayClick: (pathway: Pathway) => void;
 }
 
 const HorizontalFlameChart: React.FC<HorizontalFlameChartProps> = ({
 	pathways,
 	maxPathways,
-	onPathwayClick,
 }) => {
 	const plotContainerRef = useRef<HTMLDivElement>(null);
 	const plotRef = useRef<Plotly.PlotlyHTMLElement | null>(null);
@@ -87,37 +74,8 @@ const HorizontalFlameChart: React.FC<HorizontalFlameChartProps> = ({
 			hovertemplate: "",
 		};
 
-		// Build hierarchy from parent pathway relationships (like sunburst)
-		const buildHierarchy = (pathways: Pathway[]) => {
-			const pathwayMap = new Map<string, Pathway>();
-			const childrenMap = new Map<string, string[]>();
-			const rootPathways: Pathway[] = [];
-
-			// Create pathway map and collect children
-			pathways.forEach((pathway) => {
-				const id = pathway["ID"] || pathway["id"] || "";
-				pathwayMap.set(id, pathway);
-
-				const parentPathway =
-					pathway["Parent pathway"] || pathway["parent_pathway"] || "";
-				if (parentPathway) {
-					const parents = parentPathway.split(",").map((p: string) => p.trim());
-					parents.forEach((parent: string) => {
-						if (!childrenMap.has(parent)) {
-							childrenMap.set(parent, []);
-						}
-						childrenMap.get(parent)!.push(id);
-					});
-				} else {
-					rootPathways.push(pathway);
-				}
-			});
-
-			return { pathwayMap, childrenMap, rootPathways };
-		};
-
-		const { pathwayMap, childrenMap, rootPathways } =
-			buildHierarchy(sortedPathways);
+		const { pathwayMap, childrenMap } = buildPathwayHierarchy(sortedPathways);
+		const rootPathways = getEffectiveRootPathways(sortedPathways);
 
 		// Add root node
 		data.ids.push("root");
@@ -131,7 +89,7 @@ const HorizontalFlameChart: React.FC<HorizontalFlameChartProps> = ({
 			geneCount: 0,
 			genes: [],
 		});
-		data.marker.colors.push("#f0f0f0");
+		data.marker.colors.push(ROOT_NODE_COLORS.primary);
 
 		// Add root pathways (those without parents)
 		rootPathways.forEach((pathway, index) => {
@@ -172,14 +130,8 @@ const HorizontalFlameChart: React.FC<HorizontalFlameChartProps> = ({
 			});
 
 			// Color based on NES using prioritization colors
-			const normalized = ((nes || 0) - minNES) / (maxNES - minNES);
-			const colorIndex = Math.floor(
-				normalized * (PRIORITISATION_COLORS.length - 1),
-			);
 			data.marker.colors.push(
-				PRIORITISATION_COLORS[
-					Math.max(0, Math.min(colorIndex, PRIORITISATION_COLORS.length - 1))
-				],
+				mapToPrioritizationColor(nes || 0, minNES, maxNES)
 			);
 		});
 
@@ -230,14 +182,8 @@ const HorizontalFlameChart: React.FC<HorizontalFlameChartProps> = ({
 				});
 
 				// Color based on NES using prioritization colors
-				const normalized = ((nes || 0) - minNES) / (maxNES - minNES);
-				const colorIndex = Math.floor(
-					normalized * (PRIORITISATION_COLORS.length - 1),
-				);
 				data.marker.colors.push(
-					PRIORITISATION_COLORS[
-						Math.max(0, Math.min(colorIndex, PRIORITISATION_COLORS.length - 1))
-					],
+					mapToPrioritizationColor(nes || 0, minNES, maxNES)
 				);
 
 				// Recursively add children of this pathway
@@ -297,25 +243,7 @@ const HorizontalFlameChart: React.FC<HorizontalFlameChartProps> = ({
 				(plotDiv: Plotly.PlotlyHTMLElement) => {
 					plotRef.current = plotDiv;
 
-					// Add click event listener
-					plotDiv.on("plotly_click", (event: Plotly.PlotMouseEvent) => {
-						if (event.points && event.points.length > 0) {
-							const point = event.points[0];
-							const customData = point.customdata as {
-								type: string;
-								pathway: Pathway;
-								pValue: number;
-								fdr?: number;
-								nes?: number;
-								geneCount: number;
-								genes: string[];
-							};
-
-							if (customData && customData.type === "pathway") {
-								onPathwayClick(customData.pathway);
-							}
-						}
-					});
+					// Note: Click events are now handled by tooltips on hover
 				},
 			);
 
@@ -325,7 +253,7 @@ const HorizontalFlameChart: React.FC<HorizontalFlameChartProps> = ({
 				}
 			};
 		}
-	}, [icicleData, layout, config, onPathwayClick]);
+	}, [icicleData, layout, config]);
 
 	if (pathways.length === 0) {
 		return null;

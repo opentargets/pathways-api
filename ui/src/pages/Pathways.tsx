@@ -32,6 +32,8 @@ const Pathways: React.FC = () => {
 		execute: runGsea,
 	} = useGsea();
 
+	console.log({pathways});
+
 	// Set default library when libraries are loaded
 	React.useEffect(() => {
 		if (gmtLibraries && gmtLibraries.length > 0 && !library) {

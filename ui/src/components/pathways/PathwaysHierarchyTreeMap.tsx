@@ -5,7 +5,7 @@ import React, {
 	useEffect,
 	useRef,
 } from "react";
-// @ts-ignore
+// @ts-expect-error - Plotly types are not available for plotly.js-dist
 import Plotly from "plotly.js-dist";
 import {
 	Box,
@@ -30,13 +30,19 @@ import {
 } from "@mui/material";
 import {
 	Settings as SettingsIcon,
-	Info as InfoIcon,
 	ZoomIn as ZoomInIcon,
 	ZoomOut as ZoomOutIcon,
 	Home as HomeIcon,
-	ViewModule as TreeMapIcon,
 } from "@mui/icons-material";
 import type { Pathway } from "../../lib/api";
+import { buildPathwayHierarchy } from "../../utils/pathwayHierarchy";
+import { 
+	mapToSignificanceColorLog, 
+	mapToGeneCountColor, 
+	mapToPrioritizationColor,
+	PLOTLY_COLOR_PALETTES,
+	ROOT_NODE_COLORS
+} from "../../utils/colorPalettes";
 
 interface PathwaysHierarchyTreeMapProps {
 	pathways: Pathway[];
@@ -47,7 +53,14 @@ interface TreeMapNode {
 	labels: string[];
 	parents: string[];
 	values: number[];
-	customdata: any[];
+	customdata: Array<{
+		type: string;
+		pathway: Pathway;
+		pValue: number;
+		fdr?: number;
+		geneCount: number;
+		genes: string[];
+	}>;
 	hovertemplate: string;
 	marker: {
 		colors: string[];
@@ -59,16 +72,14 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 	pathways,
 }) => {
 	const [settingsOpen, setSettingsOpen] = useState(false);
-	const [nodeDetailsOpen, setNodeDetailsOpen] = useState(false);
-	const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(null);
 	const plotContainerRef = useRef<HTMLDivElement>(null);
-	const plotRef = useRef<any>(null);
+	const plotRef = useRef<Plotly.PlotlyHTMLElement | null>(null);
 	const [settings, setSettings] = useState({
 		maxPathways: pathways.length,
 		showPValues: true,
 		showFDR: true,
 		showGenes: false,
-		colorBy: "pvalue" as "pvalue" | "fdr" | "genes",
+		colorBy: "nes" as "pvalue" | "fdr" | "genes" | "nes",
 		layout: "squarify" as
 			| "squarify"
 			| "binary"
@@ -77,58 +88,12 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 			| "slice-dice",
 	});
 
-	// Memoized color scale generation
-	const getColorScale = useCallback(
-		(values: number[], type: "pvalue" | "fdr" | "genes") => {
-			if (type === "genes") {
-				// Color by number of genes (gradient)
-				const maxGenes = Math.max(...values);
-				return values.map((value) => {
-					const normalized = value / maxGenes;
-					return `rgb(${Math.round(255 * (1 - normalized))}, ${Math.round(255 * normalized)}, 100)`;
-				});
-			} else {
-				// Color by p-value or FDR (log scale)
-				const logValues = values.map((v) => -Math.log10(v));
-				const maxLog = Math.max(...logValues);
-				return values.map((value, index) => {
-					const normalized = logValues[index] / maxLog;
-					if (normalized > 0.7) return "#4caf50"; // Green for significant
-					if (normalized > 0.4) return "#ff9800"; // Orange for moderate
-					return "#f44336"; // Red for not significant
-				});
-			}
-		},
-		[],
-	);
 
 	// Build hierarchy from parent pathway relationships
 	const buildHierarchy = useCallback((pathways: Pathway[]) => {
-		const pathwayMap = new Map<string, Pathway>();
-		const childrenMap = new Map<string, string[]>();
-		const rootPathways: Pathway[] = [];
-
-		// Create pathway map and collect children
-		pathways.forEach((pathway) => {
-			const id = pathway["ID"] || pathway["id"] || "";
-			pathwayMap.set(id, pathway);
-
-			const parentPathway =
-				pathway["Parent pathway"] || pathway["parent_pathway"] || "";
-			if (parentPathway) {
-				const parents = parentPathway.split(",").map((p: string) => p.trim());
-				parents.forEach((parent: string) => {
-					if (!childrenMap.has(parent)) {
-						childrenMap.set(parent, []);
-					}
-					childrenMap.get(parent)!.push(id);
-				});
-			} else {
-				rootPathways.push(pathway);
-			}
-		});
-
-		return { pathwayMap, childrenMap, rootPathways };
+		const { pathwayMap, childrenMap, rootPathways, secondLevelPathways } = buildPathwayHierarchy(pathways);
+		const effectiveRootPathways = rootPathways.length > 0 ? rootPathways : secondLevelPathways;
+		return { pathwayMap, childrenMap, rootPathways: effectiveRootPathways };
 	}, []);
 
 	// Memoized treemap data generation
@@ -138,6 +103,15 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 		const limitedPathways = pathways.slice(0, settings.maxPathways);
 		const { pathwayMap, childrenMap, rootPathways } =
 			buildHierarchy(limitedPathways);
+
+		// Collect all NES values for color scaling (if using NES colors)
+		const allNESValues: number[] = [];
+		if (settings.colorBy === "nes") {
+			limitedPathways.forEach((pathway) => {
+				const nes = pathway["NES"] || pathway["nes"] || 0;
+				allNESValues.push(nes);
+			});
+		}
 
 		const nodes: TreeMapNode = {
 			ids: [],
@@ -157,8 +131,14 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 		nodes.labels.push("All Pathways");
 		nodes.parents.push("");
 		nodes.values.push(limitedPathways.length);
-		nodes.customdata.push({ type: "root" });
-		nodes.marker.colors.push("#2196f3");
+		nodes.customdata.push({
+			type: "root",
+			pathway: {} as Pathway,
+			pValue: 1,
+			geneCount: 0,
+			genes: [],
+		});
+		nodes.marker.colors.push(ROOT_NODE_COLORS.primary);
 
 		// Add root pathways (those without parents)
 		rootPathways.forEach((pathway, index) => {
@@ -166,6 +146,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 			const pValue =
 				pathway["p-value"] || pathway["p_value"] || pathway["pvalue"];
 			const fdr = pathway["FDR"] || pathway["fdr"];
+			const nes = pathway["NES"] || pathway["nes"];
 			const genes = pathway["Leading edge genes"] || pathway["genes"] || [];
 			const geneCount = Array.isArray(genes)
 				? genes.length
@@ -197,20 +178,16 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 			});
 
 			// Color based on settings
-			if (settings.colorBy === "genes") {
-				nodes.marker.colors.push(
-					`rgb(${Math.round(255 * (1 - geneCount / 50))}, ${Math.round((255 * geneCount) / 50)}, 100)`,
-				);
+			if (settings.colorBy === "nes") {
+				const maxNES = Math.max(...allNESValues);
+				const minNES = Math.min(...allNESValues);
+				nodes.marker.colors.push(mapToPrioritizationColor(nes || 0, minNES, maxNES));
+			} else if (settings.colorBy === "genes") {
+				nodes.marker.colors.push(mapToGeneCountColor(geneCount));
 			} else if (settings.colorBy === "fdr") {
-				const normalized = -Math.log10(fdr || 1) / 3;
-				if (normalized > 0.7) nodes.marker.colors.push("#4caf50");
-				else if (normalized > 0.4) nodes.marker.colors.push("#ff9800");
-				else nodes.marker.colors.push("#f44336");
+				nodes.marker.colors.push(mapToSignificanceColorLog(fdr || 1));
 			} else {
-				const normalized = -Math.log10(pValue || 1) / 3;
-				if (normalized > 0.7) nodes.marker.colors.push("#4caf50");
-				else if (normalized > 0.4) nodes.marker.colors.push("#ff9800");
-				else nodes.marker.colors.push("#f44336");
+				nodes.marker.colors.push(mapToSignificanceColorLog(pValue || 1));
 			}
 		});
 
@@ -230,6 +207,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 				const pValue =
 					pathway["p-value"] || pathway["p_value"] || pathway["pvalue"];
 				const fdr = pathway["FDR"] || pathway["fdr"];
+				const nes = pathway["NES"] || pathway["nes"];
 				const genes = pathway["Leading edge genes"] || pathway["genes"] || [];
 				const geneCount = Array.isArray(genes)
 					? genes.length
@@ -259,20 +237,16 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 				});
 
 				// Color based on settings
-				if (settings.colorBy === "genes") {
-					nodes.marker.colors.push(
-						`rgb(${Math.round(255 * (1 - geneCount / 50))}, ${Math.round((255 * geneCount) / 50)}, 100)`,
-					);
+				if (settings.colorBy === "nes") {
+					const maxNES = Math.max(...allNESValues);
+					const minNES = Math.min(...allNESValues);
+					nodes.marker.colors.push(mapToPrioritizationColor(nes || 0, minNES, maxNES));
+				} else if (settings.colorBy === "genes") {
+					nodes.marker.colors.push(mapToGeneCountColor(geneCount));
 				} else if (settings.colorBy === "fdr") {
-					const normalized = -Math.log10(fdr || 1) / 3;
-					if (normalized > 0.7) nodes.marker.colors.push("#4caf50");
-					else if (normalized > 0.4) nodes.marker.colors.push("#ff9800");
-					else nodes.marker.colors.push("#f44336");
+					nodes.marker.colors.push(mapToSignificanceColorLog(fdr || 1));
 				} else {
-					const normalized = -Math.log10(pValue || 1) / 3;
-					if (normalized > 0.7) nodes.marker.colors.push("#4caf50");
-					else if (normalized > 0.4) nodes.marker.colors.push("#ff9800");
-					else nodes.marker.colors.push("#f44336");
+					nodes.marker.colors.push(mapToSignificanceColorLog(pValue || 1));
 				}
 
 				// Recursively add children of this pathway
@@ -286,9 +260,11 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 			addChildren(pathwayId, pathwayId);
 		});
 
-		// Set hover template
+		// Set hover template with more detailed information
 		nodes.hovertemplate =
-			"<b>%{label}</b><br>" + "Area: %{value}<br>" + "<extra></extra>";
+			"<b>%{label}</b><br>" +
+			"Area: %{value}<br>" +
+			"<extra></extra>";
 
 		return nodes;
 	}, [pathways, settings.maxPathways, settings.colorBy, buildHierarchy]);
@@ -298,7 +274,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 		() => ({
 			width: undefined,
 			height: 700,
-			treemapcolorway: ["#636efa", "#ef553b", "#00cc96", "#ab63fa", "#ffa15a"],
+			treemapcolorway: PLOTLY_COLOR_PALETTES.treemap,
 			extendsunburstcolors: true,
 			margin: { l: 0, r: 0, t: 0, b: 0 },
 			treemap: {
@@ -335,21 +311,10 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 			];
 
 			Plotly.newPlot(plotElement, plotData, layout, config).then(
-				(plotDiv: any) => {
+				(plotDiv: Plotly.PlotlyHTMLElement) => {
 					plotRef.current = plotDiv;
 
-					// Add click event listener
-					plotDiv.on("plotly_click", (event: any) => {
-						if (event.points && event.points.length > 0) {
-							const point = event.points[0];
-							const customData = point.customdata;
-
-							if (customData && customData.type === "pathway") {
-								setSelectedPathway(customData.pathway);
-								setNodeDetailsOpen(true);
-							}
-						}
-					});
+					// Note: Click events are now handled by tooltips on hover
 				},
 			);
 
@@ -362,7 +327,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 	}, [treemapData, layout, config]);
 
 	// Handle settings change
-	const handleSettingsChange = useCallback((key: string, value: any) => {
+	const handleSettingsChange = useCallback((key: string, value: unknown) => {
 		setSettings((prev) => ({ ...prev, [key]: value }));
 	}, []);
 
@@ -490,6 +455,7 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 								}
 								label="Color By"
 							>
+								<MenuItem value="nes">NES (Prioritization)</MenuItem>
 								<MenuItem value="pvalue">P-Value</MenuItem>
 								<MenuItem value="fdr">FDR</MenuItem>
 								<MenuItem value="genes">Gene Count</MenuItem>
@@ -570,186 +536,6 @@ const PathwaysHierarchyTreeMap: React.FC<PathwaysHierarchyTreeMapProps> = ({
 				</DialogActions>
 			</Dialog>
 
-			{/* Pathway Details Dialog */}
-			<Dialog
-				open={nodeDetailsOpen}
-				onClose={() => setNodeDetailsOpen(false)}
-				maxWidth="md"
-				fullWidth
-			>
-				<DialogTitle>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-						<InfoIcon />
-						Pathway Details
-					</Box>
-				</DialogTitle>
-				<DialogContent>
-					{selectedPathway && (
-						<Box sx={{ mt: 2 }}>
-							<Typography variant="h6" gutterBottom>
-								{selectedPathway["Pathway"] ||
-									selectedPathway["pathway"] ||
-									"Unknown Pathway"}
-							</Typography>
-
-							<Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-								<Chip
-									label={`P-value: ${(selectedPathway["p-value"] || selectedPathway["p_value"] || selectedPathway["pvalue"] || 1).toExponential(2)}`}
-									color={
-										(selectedPathway["p-value"] ||
-											selectedPathway["p_value"] ||
-											selectedPathway["pvalue"] ||
-											1) < 0.05
-											? "success"
-											: "default"
-									}
-								/>
-								<Chip
-									label={`FDR: ${(selectedPathway["FDR"] || selectedPathway["fdr"] || 1).toExponential(2)}`}
-									color={
-										(selectedPathway["FDR"] || selectedPathway["fdr"] || 1) <
-										0.05
-											? "success"
-											: "default"
-									}
-								/>
-								<Chip
-									label={`${
-										Array.isArray(
-											selectedPathway["Leading edge genes"] ||
-												selectedPathway["genes"],
-										)
-											? (
-													selectedPathway["Leading edge genes"] ||
-														selectedPathway["genes"]
-												).length
-											: typeof (
-														selectedPathway["Leading edge genes"] ||
-														selectedPathway["genes"]
-													) === "string"
-												? (
-														selectedPathway["Leading edge genes"] ||
-														selectedPathway["genes"]
-													).split(",").length
-												: 0
-									} genes`}
-									color="primary"
-								/>
-							</Box>
-
-							{settings.showGenes &&
-								(selectedPathway["Leading edge genes"] ||
-									selectedPathway["genes"]) && (
-									<Box>
-										<Typography variant="subtitle1" gutterBottom>
-											Leading Edge Genes:
-										</Typography>
-										<Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-											{(Array.isArray(
-												selectedPathway["Leading edge genes"] ||
-													selectedPathway["genes"],
-											)
-												? selectedPathway["Leading edge genes"] ||
-													selectedPathway["genes"]
-												: typeof (
-															selectedPathway["Leading edge genes"] ||
-															selectedPathway["genes"]
-														) === "string"
-													? (
-															selectedPathway["Leading edge genes"] ||
-															selectedPathway["genes"]
-														)
-															.split(",")
-															.map((g: string) => g.trim())
-													: []
-											)
-												.slice(0, 20)
-												.map((gene: string, index: number) => (
-													<Chip
-														key={index}
-														label={gene}
-														size="small"
-														variant="outlined"
-													/>
-												))}
-											{(Array.isArray(
-												selectedPathway["Leading edge genes"] ||
-													selectedPathway["genes"],
-											)
-												? (
-														selectedPathway["Leading edge genes"] ||
-														selectedPathway["genes"]
-													).length
-												: typeof (
-															selectedPathway["Leading edge genes"] ||
-															selectedPathway["genes"]
-														) === "string"
-													? (
-															selectedPathway["Leading edge genes"] ||
-															selectedPathway["genes"]
-														).split(",").length
-													: 0) > 20 && (
-												<Chip
-													label={`+${
-														(Array.isArray(
-															selectedPathway["Leading edge genes"] ||
-																selectedPathway["genes"],
-														)
-															? (
-																	selectedPathway["Leading edge genes"] ||
-																	selectedPathway["genes"]
-																).length
-															: typeof (
-																		selectedPathway["Leading edge genes"] ||
-																		selectedPathway["genes"]
-																	) === "string"
-																? (
-																		selectedPathway["Leading edge genes"] ||
-																		selectedPathway["genes"]
-																	).split(",").length
-																: 0) - 20
-													} more`}
-													size="small"
-												/>
-											)}
-										</Box>
-									</Box>
-								)}
-
-							<Box sx={{ mt: 2 }}>
-								<Typography variant="subtitle2" gutterBottom>
-									All Pathway Data:
-								</Typography>
-								<Box sx={{ maxHeight: "200px", overflow: "auto" }}>
-									{Object.entries(selectedPathway).map(([key, value]) => (
-										<Box
-											key={key}
-											sx={{
-												display: "flex",
-												justifyContent: "space-between",
-												py: 0.5,
-											}}
-										>
-											<Typography variant="body2" sx={{ fontWeight: "bold" }}>
-												{key}:
-											</Typography>
-											<Typography
-												variant="body2"
-												sx={{ ml: 2, maxWidth: "60%" }}
-											>
-												{String(value)}
-											</Typography>
-										</Box>
-									))}
-								</Box>
-							</Box>
-						</Box>
-					)}
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={() => setNodeDetailsOpen(false)}>Close</Button>
-				</DialogActions>
-			</Dialog>
 		</Box>
 	);
 };

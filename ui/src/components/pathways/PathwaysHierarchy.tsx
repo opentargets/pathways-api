@@ -36,16 +36,10 @@ import {
 	TrendingUp as TrendingUpIcon,
 } from "@mui/icons-material";
 import type { Pathway } from "../../lib/api";
+import { buildPathwayTree, type TreeNode } from "../../utils/pathwayHierarchy";
 
 interface PathwaysHierarchyProps {
 	pathways: Pathway[];
-}
-
-interface TreeNode {
-	id: string;
-	pathway: Pathway;
-	children: TreeNode[];
-	level: number;
 }
 
 interface TreeViewSettings {
@@ -61,64 +55,6 @@ interface TreeViewSettings {
 	sortDirection: "asc" | "desc";
 }
 
-// Build tree structure from pathways
-const buildPathwayTree = (pathways: Pathway[]): TreeNode[] => {
-	const pathwayMap = new Map<string, Pathway>();
-	const childrenMap = new Map<string, string[]>();
-	const rootNodes: TreeNode[] = [];
-
-	// Create pathway map and collect children
-	pathways.forEach((pathway) => {
-		const id = pathway["ID"] || pathway["id"] || "";
-		pathwayMap.set(id, pathway);
-
-		const parentPathway =
-			pathway["Parent pathway"] || pathway["parent_pathway"] || "";
-		if (parentPathway) {
-			const parents = parentPathway.split(",").map((p: string) => p.trim());
-			parents.forEach((parent: string) => {
-				if (!childrenMap.has(parent)) {
-					childrenMap.set(parent, []);
-				}
-				childrenMap.get(parent)!.push(id);
-			});
-		} else {
-			// This is a root pathway
-			rootNodes.push({
-				id,
-				pathway,
-				children: [],
-				level: 0,
-			});
-		}
-	});
-
-	// Recursive function to build tree
-	const buildChildren = (parentId: string, level: number): TreeNode[] => {
-		const children = childrenMap.get(parentId) || [];
-		return children
-			.map((childId) => {
-				const childPathway = pathwayMap.get(childId);
-				if (!childPathway) return null;
-
-				return {
-					id: childId,
-					pathway: childPathway,
-					children: buildChildren(childId, level + 1),
-					level,
-					isExpanded: false, // We'll manage this externally now
-				};
-			})
-			.filter(Boolean) as TreeNode[];
-	};
-
-	// Build children for root nodes
-	rootNodes.forEach((rootNode) => {
-		rootNode.children = buildChildren(rootNode.id, 1);
-	});
-
-	return rootNodes;
-};
 
 // Sort tree nodes
 const sortTreeNodes = (
@@ -394,8 +330,11 @@ const PathwaysHierarchy: React.FC<PathwaysHierarchyProps> = ({ pathways }) => {
 	// Build and sort tree
 	const treeData = useMemo(() => {
 		const tree = buildPathwayTree(pathways);
+		console.log(tree);
 		return sortTreeNodes(tree, settings);
 	}, [pathways, settings]);
+
+	console.log({treeData, pathways});
 
 	// Handle node toggle
 	const handleNodeToggle = useCallback((nodeId: string) => {
@@ -476,7 +415,7 @@ const PathwaysHierarchy: React.FC<PathwaysHierarchyProps> = ({ pathways }) => {
 						icon={<TrendingUpIcon />}
 					/>
 					<Chip
-						label={`${treeData.length} root pathways`}
+						label={`${treeData.length} top-level pathways`}
 						color="secondary"
 						size="small"
 						icon={<HubIcon />}
