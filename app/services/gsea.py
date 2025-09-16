@@ -41,6 +41,8 @@ def available_gmt_files():
 def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     """
     Run GSEA using a chosen GMT library and its hierarchy (if present).
+    Pathway size is computed from the GMT (total genes in the pathway).
+    Ensure 'Number of input genes' and 'Pathway size' are integers (no .0).
     """
     input_tsv = Path(input_tsv) if input_tsv else DEFAULT_TEST_INPUT
 
@@ -51,7 +53,25 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     gmt_file = gmt_files[gmt_name]["gmt"]
     hierarchy_file = gmt_files[gmt_name]["hierarchy"]
 
+    # load library sets (term -> genes list)
     library_sets = load_custom_gmt(gmt_file)
+
+    # Build ID -> genes mapping from the GMT file (Term may contain {ID})
+    id_to_genes = {}
+    with open(gmt_file, 'r') as f:
+        for line in f:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) > 2:
+                term = parts[0]
+                genes = parts[2:]
+                # extract ID inside braces {ID}
+                m = None
+                if "{" in term and "}" in term:
+                    start = term.find("{") + 1
+                    end = term.find("}", start)
+                    if end > start:
+                        id_ = term[start:end]
+                        id_to_genes[id_] = genes
 
     # --- Load input file safely ---
     df = pd.read_csv(input_tsv, sep="\t")
@@ -83,12 +103,9 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     else:
         res_df["Link"] = "https://reactome.org/content/detail/" + res_df["ID"]
 
-    if "leading_edge" in res_df.columns:
-        res_df["Pathway size"] = res_df["leading_edge"].apply(
-            lambda x: len(x.split(",")) if isinstance(x, str) and x.strip() else 0
-        )
-    else:
-        res_df["Pathway size"] = 0
+    # --- Pathway size = number of genes defined in GMT ---
+    # default to 0 if ID missing or not found in GMT
+    res_df["Pathway size"] = res_df["ID"].map(lambda x: len(id_to_genes.get(x, [])) if pd.notna(x) and x != "" else 0)
 
     rename_map = {
         "Term": "Pathway",
@@ -124,5 +141,21 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
         )
     else:
         res_df["Parent pathway"] = ""
+
+    # --- Final: ensure integer formatting for counts (no .0) ---
+    def safe_int_col(df_, col_name):
+        """
+        Clean a column (remove commas, coerce non-numeric → NaN), fill NaN with 0, then convert to int.
+        """
+        if col_name in df_.columns:
+            # convert to string, remove commas, strip whitespace
+            s = df_[col_name].astype(str).str.replace(",", "", regex=False).str.strip()
+            # treat empty strings and 'nan' as NaN
+            s = s.replace({'': None, 'nan': None})
+            # coerce to numeric, replace NaN with 0, then int
+            df_[col_name] = pd.to_numeric(s, errors='coerce').fillna(0).astype(int)
+
+    safe_int_col(res_df, "Number of input genes")
+    safe_int_col(res_df, "Pathway size")
 
     return res_df
