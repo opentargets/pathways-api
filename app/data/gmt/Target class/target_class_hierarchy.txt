@@ -1,0 +1,712 @@
+Enzyme	Transferase
+Lyase	Guanylate cyclase
+Metallo protease	Metallo protease MAE clan
+Atypical protein kinase group	Atypical protein kinase PIKK family
+Cysteine protease	Cysteine protease CA clan
+Other protein kinase group	Other protein kinase AUR family
+Peptide receptor (family A GPCR)	N-formyl methionyl peptide receptor
+Protein Phosphatase	Tyrosine protein phosphatase
+Membrane receptor	Family C G protein-coupled receptor
+Protein Phosphatase	Serine/threonine/tyrosine protein phosphatase
+CMGC protein kinase CDK family	CMGC protein kinase CDC2 subfamily
+Cytochrome P450	Cytochrome P450 family 2
+STE protein kinase STE20 family	STE protein kinase SLK subfamily
+Metallo protease	Metallo protease MH clan
+CAMK protein kinase MAPKAPK family	CAMK protein kinase MNK subfamily
+Methyl-lysine/arginine binding protein	Tudor domain
+Enzyme	Cytochrome P450
+Peptide receptor (family A GPCR)	Short peptide receptor (family A GPCR)
+Short peptide receptor (family A GPCR)	Opioid receptor
+Phosphodiesterase 6	Phosphodiesterase 6C
+Threonine protease	Threonine protease PBT clan
+Phosphodiesterase	Phosphodiesterase 6
+Protein methyltransferase	SET domain
+Taste family G protein-coupled receptor	Taste receptor (taste family GPCR)
+Peptide receptor (family A GPCR)	Protease-activated receptor
+Neurotransmitter receptor (family C GPCR)	Metabotropic glutamate receptor
+Peptide receptor (family A GPCR)	Chemokine receptor
+Tyrosine protein phosphatase	Receptor tyrosine-protein phosphatase
+ATP-binding cassette	ABCC subfamily
+Protease	Aspartic protease
+Metallo protease	Metallo protease MG clan
+CMGC protein kinase CDK family	CMGC protein kinase CDK5 subfamily
+Miscellaneous ion channel	Presenilin ER Ca2+ leak channel family
+Phosphodiesterase 6	Phosphodiesterase 6B
+Enzyme	Lyase
+Enzyme	Protease
+Peptide receptor (family A GPCR)	Chemokine receptor-like
+CAMK protein kinase group	CAMK protein kinase CAMK1 family
+Nuclear hormone receptor subfamily 3	Nuclear hormone receptor subfamily 3 group A
+Nuclear hormone receptor subfamily 5 group A	Nuclear hormone receptor subfamily 5 group A member 2
+CAMK protein kinase group	CAMK protein kinase CAMK2 family
+TK protein kinase group	Tyrosine protein kinase Axl family
+Protein Kinase	AGC protein kinase group
+TKL protein kinase group	TKL protein kinase STKR family
+Small molecule receptor (family A GPCR)	Monoamine-derivative receptor (family A GPCR)
+Histone acetyltransferase	SRC family
+Enzyme	Ligase
+Electrochemical transporter	SLC superfamily of solute carriers
+Other protein kinase group	Other protein kinase NEK family
+Family A G protein-coupled receptor	Small molecule receptor (family A GPCR)
+Methyl-lysine/arginine binding protein	Chromodomain
+Lysine demethylase	Lysine-specific demethylase
+Atypical protein kinase group	Atypical protein kinase PDHK subfamily
+AGC protein kinase group	AGC protein kinase AKT family
+Nuclear hormone receptor subfamily 2 group E	Nuclear hormone receptor subfamily 2 group E member 3
+SLC superfamily of solute carriers	SLC13 family of sodium-dependent sulphate/carboxylate transporters
+Cytochrome P450 family 2	Cytochrome P450 family 2C
+Aspartic protease AA clan	Aspartic protease A1A subfamily
+CMGC protein kinase DYRK family	CMGC protein kinase HIPK subfamily
+Nuclear hormone receptor subfamily 3	Nuclear hormone receptor subfamily 3 group B
+Enzyme	Hydrolase
+CAMK protein kinase group	CAMK protein kinase RSKb family
+SLC superfamily of solute carriers	SLC21/SLCO family of organic anion transporting polypeptides
+Ligand-gated ion channel	Ionotropic glutamate receptor
+Ion channel	Voltage-gated ion channel
+Ion channel	Ligand-gated ion channel
+Nuclear receptor	Nuclear hormone receptor subfamily 5
+Ligand-gated ion channel	Epithelial sodium channel
+Membrane receptor	Family B G protein-coupled receptor
+Guanylate cyclase	Receptor guanylate cyclase
+CAMK protein kinase CAMK1 family	CAMK protein kinase NuaK subfamily
+Metallo protease MAM clan	Metallo protease M10A subfamily
+Protease-activated receptor	Protease-activated receptor
+CAMK protein kinase group	CAMK protein kinase PKD family
+Protease	Metallo protease
+Histone acetyltransferase	p300/CBP family
+Monoamine receptor	Adrenergic receptor
+Potassium channels	Two-pore domain potassium channel
+Cytochrome P450 family 2C	Cytochrome P450 2C8
+Peptide receptor (family A GPCR)	Relaxin-like peptide receptor (family A GPCR)
+Family C G protein-coupled receptor	Small molecule receptor (family C GPCR)
+Phosphodiesterase 6	Phosphodiesterase 6G
+Serine protease	Serine protease PA clan
+Serine protease PA clan	Serine protease S1A subfamily
+Protease	Cysteine protease
+AGC protein kinase group	AGC protein kinase PKN family
+Ionotropic glutamate receptor	Kainate receptor
+Small molecule receptor (family C GPCR)	Neurotransmitter receptor (family C GPCR)
+Ion channel	Other ion channel
+Protein Kinase	Other protein kinase group
+Family A G protein-coupled receptor	Peptide receptor (family A GPCR)
+Serine protease SB clan	Serine protease S8B subfamily
+Nuclear hormone receptor subfamily 2	Nuclear hormone receptor subfamily 2 group E
+CMGC protein kinase group	CMGC protein kinase CDKL family
+Monoamine receptor	Acetylcholine receptor
+STE protein kinase STE20 family	STE protein kinase KHS subfamily
+Membrane receptor	Taste family G protein-coupled receptor
+Transporter	Electrochemical transporter
+STE protein kinase STE20 family	STE protein kinase YSK subfamily
+TKL protein kinase STKR family	TKL protein kinase STKR Type 2 subfamily
+SLC superfamily of solute carriers	SLC02 family of hexose and sugar alcohol transporters
+Peptide receptor (family A GPCR)	Anaphylatoxin receptor family
+Kinase	Protein kinase regulatory subunit
+Enzyme	Aminoacyltransferase
+Anaphylatoxin receptor family	Anaphylatoxin receptor
+Lipid-like ligand receptor (family A GPCR)	Leukotriene receptor
+CMGC protein kinase CDK family	CMGC protein kinase PITSLRE subfamily
+Enzyme	Kinase
+Enzyme	Oxidoreductase
+CAMK protein kinase group	CAMK protein kinase PIM family
+Short peptide receptor (family A GPCR)	Neuropeptide Y receptor
+Nuclear receptor	Nuclear hormone receptor subfamily 2
+Protein Phosphatase	Protein phosphatase regulatory subunit
+Auxiliary transport protein	Fatty acid binding protein family
+Ligand-gated ion channel	Glycine receptor
+Reader	Methyl-lysine/arginine binding protein
+Phosphodiesterase 6	Phosphodiesterase 6D
+Metallo protease MH clan	Metallo protease M28 family
+Short peptide receptor (family A GPCR)	Melanocortin receptor
+Eraser	Lysine demethylase
+Reader	Bromodomain
+Transporter	Group translocator
+Epigenetic regulator	Reader
+SLC superfamily of solute carriers	SLC06 neurotransmitter transporter family
+SLC superfamily of solute carriers	SLC20 family of sodium-dependent phosphate transporters
+Lipid-like ligand receptor (family A GPCR)	EDG receptor
+TKL protein kinase group	TKL protein kinase LISK family
+TKL protein kinase STKR family	TKL protein kinase STKR Type 1 subfamily
+Cytochrome P450	Cytochrome P450 family 26
+Other ion channel	Chloride channel
+Tyrosine protein kinase Src family	Tyrosine protein kinase Srm
+Family C G protein-coupled receptor	Taste receptor (family C GPCR)
+Enzyme	Isomerase
+Protein Kinase	CAMK protein kinase group
+Nuclear hormone receptor subfamily 5	Nuclear hormone receptor subfamily 5 group A
+SLC superfamily of solute carriers	SLC25 family of mitochondrial transporters
+Short peptide receptor (family A GPCR)	Neuropeptide receptor
+Methyl-lysine/arginine binding protein	PWWP domain
+Other protein kinase NEK family	Other protein kinase Nek11
+Protein Kinase	STE protein kinase group
+TK protein kinase group	Tyrosine protein kinase Src family
+Nuclear hormone receptor subfamily 1 group C	Nuclear hormone receptor subfamily 1 group C member 1
+STE protein kinase group	STE protein kinase STE11 family
+CAMK protein kinase group	CAMK protein kinase unique family
+CAMK protein kinase group	CAMK protein kinase MAPKAPK family
+TKL protein kinase STKR family	TKL protein kinase STKR1
+Other protein kinase group	Other protein kinase NKF1 family
+Metallo protease MAE clan	Metallo protease M13 family
+Monoamine receptor	Dopamine receptor
+Epigenetic regulator	Writer
+Transcription factor	Nuclear receptor
+Epigenetic regulator	Eraser
+Protein Kinase	Atypical protein kinase group
+Nucleotide-like receptor (family A GPCR)	Adenosine receptor
+Protein methyltransferase	Protein arginine methyltransferase
+Relaxin-like peptide receptor (family A GPCR)	Relaxin receptor
+Nuclear hormone receptor subfamily 1	Nuclear hormone receptor subfamily 1 group C
+AGC protein kinase group	AGC protein kinase RSK family
+Protein Kinase	TK protein kinase group
+STE protein kinase group	STE protein kinase STE20 family
+P-type ATPase	Calcium ATPase
+SLC superfamily of solute carriers	SLC22 family of organic cation and anion transporters
+Small molecule receptor (family A GPCR)	Lipid-like ligand receptor (family A GPCR)
+Voltage-gated ion channel	Potassium channels
+Other ion channel	Miscellaneous ion channel
+Primary active transporter	ATP-binding cassette
+Enzyme	Phosphatase
+SLC superfamily of solute carriers	SLC09 family of sodium/hydrogen exchangers
+Metallo protease MG clan	Metallo protease M24A subfamily
+Kinase	Protein Kinase
+AGC protein kinase RSK family	AGC protein kinase MSK subfamily
+Protein Phosphatase	Serine/threonine protein phosphatase
+Writer	Protein methyltransferase
+Ligand-gated ion channel	5HT3 receptor
+Chloride channel	ClC chloride channel
+Lipid-like ligand receptor (family A GPCR)	Cannabinoid receptor
+Protease	Serine protease
+Protein Kinase	TKL protein kinase group
+Metallo protease MAE clan	Metallo protease M1 family
+CAMK protein kinase CAMK1 family	CAMK protein kinase AMPK subfamily
+SLC superfamily of solute carriers	SLC17 phosphate and organic anion transporter family
+Small molecule receptor (family A GPCR)	Monoamine receptor
+TKL protein kinase group	TKL protein kinase LRRK family
+Protein Kinase	CMGC protein kinase group
+N-formyl methionyl peptide receptor	N-formyl methionyl peptide receptor
+Voltage-gated ion channel	Transient receptor potential channel
+Nuclear hormone receptor subfamily 1 group A	Nuclear hormone receptor subfamily 1 group A member 1
+Phosphodiesterase 3	Phosphodiesterase 3A
+Nuclear receptor	Nuclear hormone receptor subfamily 3
+Ionotropic glutamate receptor	NMDA receptor
+Ligand-gated ion channel	P2X receptor
+STE protein kinase STE20 family	STE protein kinase MST subfamily
+Nuclear receptor	Nuclear hormone receptor subfamily 1
+Cysteine protease CA clan	Cysteine protease C19 family
+STE protein kinase STE11 family	STE protein kinase ASK
+Reader	Plant homeodomain
+Nuclear hormone receptor subfamily 1	Nuclear hormone receptor subfamily 1 group A
+Metallo protease M28 family	Metallo protease M28B subfamily
+Metallo protease MG clan	Metallo protease M24B subfamily
+CMGC protein kinase group	CMGC protein kinase DYRK family
+Writer	Histone acetyltransferase
+Potassium channels	Voltage-gated potassium channel
+Threonine protease PBT clan	Threonine protease T1A subfamily
+SLC superfamily of solute carriers	SLC35 family of nucleotide sugar transporters
+Ligand-gated ion channel	GABA-A receptor
+Enzyme	Phosphodiesterase
+Membrane receptor	Frizzled family G protein-coupled receptor
+CAMK protein kinase RSKb family	CAMK protein kinase RSKb subfamily
+CMGC protein kinase group	CMGC protein kinase CDK family
+Small molecule receptor (family A GPCR)	Nucleotide-like receptor (family A GPCR)
+Membrane receptor	Family A G protein-coupled receptor
+Writer	DNA methyltransferase
+Serine protease	Serine protease SB clan
+Short peptide receptor (family A GPCR)	Orexin receptor
+Phosphatase	Protein Phosphatase
+Monoamine-derivative receptor (family A GPCR)	Melatonin receptor
+Primary active transporter	P-type ATPase
+Transporter	Primary active transporter
+Membrane receptor	Toll-like and Il-1 receptors
+TK protein kinase group	Tyrosine protein kinase Csk family
+TKL protein kinase LISK family	TKL protein kinase LIMK subfamily
+TK protein kinase group	Tyrosine protein kinase JakB family
+Nuclear hormone receptor subfamily 3 group A	Nuclear hormone receptor subfamily 3 group A member 2
+Protease	Threonine protease
+Metallo protease	Metallo protease MAM clan
+Aspartic protease	Aspartic protease AA clan
+Chemokine receptor	CC chemokine receptor
+Nuclear hormone receptor subfamily 3 group B	Nuclear hormone receptor subfamily 3 group B member 3
+Phosphodiesterase	Phosphodiesterase 3
+Cysteine protease	Cysteine protease CD clan
+Cytochrome P450 family 2D	Cytochrome P450 2D6
+Serine protease SC clan	Serine protease S9C subfamily
+Glucagon-like receptor	Glucagon receptor
+Nuclear hormone receptor subfamily 1	Nuclear hormone receptor subfamily 1 group H
+Atypical protein kinase RIO family	Atypical protein kinase RIO3 subfamily
+TK protein kinase group	Tyrosine protein kinase Fer family
+Other protein kinase group	Other protein kinase PLK family
+Nucleotide-like receptor (family A GPCR)	Purine receptor
+Peptide receptor (family B GPCR)	Glucagon-like receptor
+Metallo protease MAM clan	Metallo protease M12B subfamily
+SLC superfamily of solute carriers	SLC08 family of sodium/calcium exchangers
+Other protein kinase group	Other protein kinase CDC7 family
+Cytochrome P450 family 1	Cytochrome P450 family 1B
+Peptide receptor (family B GPCR)	Vasoactive intestinal peptide receptor
+Metallo protease M67 family	Metallo protease M67A subfamily
+SLC superfamily of solute carriers	SLC28 and SLC29 families of nucleoside transporters
+SLC28 and SLC29 families of nucleoside transporters	SLC28 Na+-coupled nucleoside transport family
+Cytochrome P450 family 19A	Cytochrome P450 19A1
+Metallo protease MC clan	Metallo protease M14A subfamily
+Nuclear hormone receptor subfamily 2	Nuclear hormone receptor subfamily 2 group B
+Cytochrome P450 family 1A	Cytochrome P450 1A2
+Phosphodiesterase	Phosphodiesterase 7
+STE protein kinase group	STE protein kinase STE7 family
+SLC superfamily of solute carriers	SLC27 family of fatty acid transporters
+Phosphodiesterase 2	Phosphodiesterase 2A
+Metallo protease MP clan	Metallo protease M67 family
+CMGC protein kinase CDK family	CMGC protein kinase PCTAIRE
+CMGC protein kinase CDK family	CMGC protein kinase TAIRE subfamily
+Nuclear hormone receptor subfamily 1	Nuclear hormone receptor subfamily 1 group B
+TK protein kinase group	Tyrosine protein kinase VEGFR family
+Nuclear hormone receptor subfamily 1 group I	Nuclear hormone receptor subfamily 1 group I member 1
+CMGC protein kinase CDK family	CMGC protein kinase CDK9 subfamily
+CAMK protein kinase CAMK1 family	CAMK protein kinase MARK subfamily
+Cytochrome P450 family 19	Cytochrome P450 family 19A
+Metallo protease MC clan	Metallo protease M14B subfamily
+CMGC protein kinase group	CMGC protein kinase GSK family
+Cytochrome P450 family 2	Cytochrome P450 family 2D
+Short peptide receptor (family A GPCR)	Somatostatin receptor
+Lipid-like ligand receptor (family A GPCR)	Prostanoid receptor
+TK protein kinase group	Tyrosine protein kinase Tec family
+SLC superfamily of solute carriers	SLC34 family of sodium phosphate co-transporters
+Phosphodiesterase 9	Phosphodiesterase 9A
+Cysteine protease CA clan	Cysteine protease C1A family
+Cytochrome P450	Cytochrome P450 family 1
+Vasoactive intestinal peptide receptor	Vasoactive intestinal peptide receptor
+TK protein kinase group	Tyrosine protein kinase EGFR family
+Phosphodiesterase 4	Phosphodiesterase 4D
+Cysteine protease CA clan	Cysteine protease C2 family
+TK protein kinase group	Tyrosine protein kinase DDR family
+Cytochrome P450 family 1A	Cytochrome P450 1A1
+Other protein kinase group	Other protein kinase NKF4 family
+Serine protease SC clan	Serine protease S9B subfamily
+Metallo protease	Metallo protease MC clan
+Nuclear hormone receptor subfamily 2 group B	Nuclear hormone receptor subfamily 2 group B member 2
+Metallo protease	Metallo protease MP clan
+Nuclear hormone receptor subfamily 1 group B	Nuclear hormone receptor subfamily 1 group B member 1
+Phosphodiesterase 6	Phosphodiesterase 6A
+CMGC protein kinase CDK family	CMGC protein kinase PFTAIRE
+Lysine demethylase	Jumonji domain-containing
+CAMK protein kinase CAMK1 family	CAMK protein kinase BRSK subfamily
+Phosphodiesterase 7	Phosphodiesterase 7A
+Histone deacetylase	HDAC class IIb
+Nuclear hormone receptor subfamily 1	Nuclear hormone receptor subfamily 1 group I
+Cytochrome P450	Cytochrome P450 family 19
+Cytochrome P450 family 1B	Cytochrome P450 1B1
+SLC03 and SLC07 families of heteromeric amino acid transporters (HATs)	SLC07 Cationic amino acid transporter/glycoprotein-associated family
+Short peptide receptor (family A GPCR)	Vasopressin and oxytocin receptor
+Phosphodiesterase	Phosphodiesterase 9
+Phosphodiesterase	Phosphodiesterase 1
+Histone deacetylase	HDAC class IIa
+Histone acetyltransferase	GNAT family
+Nicotinic acetylcholine receptor	Nicotinic acetylcholine receptor beta subunit
+Short peptide receptor (family A GPCR)	RF amide receptor
+Serine protease	Serine protease SC clan
+SLC superfamily of solute carriers	SLC15 family of peptide transporters
+Ligand-gated ion channel	Nicotinic acetylcholine receptor
+Aminoacyltransferase	Protein-glutamine glutamyl-transferase
+Chemokine receptor	CX3C chemokine receptor
+CMGC protein kinase group	CMGC protein kinase MAPK family
+ATP-binding cassette	ABCB subfamily
+Nuclear hormone receptor subfamily 1 group H	Nuclear hormone receptor subfamily 1 group H member 3
+CMGC protein kinase DYRK family	CMGC protein kinase Dyrk1 subfamily
+Phosphodiesterase	Phosphodiesterase 4
+Nuclear hormone receptor subfamily 2 group B	Nuclear hormone receptor subfamily 2 group B member 3
+Serine protease SC clan	Serine protease S10 family
+Other ion channel	Pore-forming toxins (proteins and peptides)
+Nuclear hormone receptor subfamily 5 group A	Nuclear hormone receptor subfamily 5 group A member 1
+CMGC protein kinase CDK family	CMGC protein kinase CDK7 subfamily
+STE protein kinase STE20 family	STE protein kinase PAKB subfamily
+SLC28 and SLC29 families of nucleoside transporters	SLC29 Facilitative nucleoside transporter family
+Atypical protein kinase group	Atypical protein kinase RIO family
+TK protein kinase group	Tyrosine protein kinase Eph family
+TK protein kinase group	Tyrosine protein kinase FGFR family
+Potassium channels	Inwardly rectifying potassium channel
+TK protein kinase group	Tyrosine protein kinase Met family
+CAMK protein kinase group	CAMK protein kinase DCAMK1 family
+P-type ATPase	Sodium potassium ATPase
+Other protein kinase group	Other protein kinase ULK family
+Phosphodiesterase 1	Phosphodiesterase 1B
+Cytochrome P450 family 1	Cytochrome P450 family 1A
+SLC superfamily of solute carriers	SLC03 and SLC07 families of heteromeric amino acid transporters (HATs)
+Auxiliary transport protein	Voltage-gated potassium channel beta-subunit family
+Phosphodiesterase 6	Phosphodiesterase 6H
+Nicotinic acetylcholine receptor	Nicotinic acetylcholine receptor alpha subunit
+Phosphodiesterase	Phosphodiesterase 2
+Nuclear hormone receptor subfamily 3 group A	Nuclear hormone receptor subfamily 3 group A member 1
+Atypical protein kinase RIO family	Atypical protein kinase RIO1 subfamily
+Histone deacetylase	HDAC class I
+Chemokine receptor	CXC chemokine receptor
+Nuclear hormone receptor subfamily 2 group B	Nuclear hormone receptor subfamily 2 group B member 1
+Cysteine protease CD clan	Cysteine protease C14 family
+Ionotropic glutamate receptor	AMPA receptor
+Nuclear hormone receptor subfamily 1 group I	Nuclear hormone receptor subfamily 1 group I member 3
+Eraser	Histone deacetylase
+Ligand-gated ion channel	IP3 receptor
+Family B G protein-coupled receptor	Peptide receptor (family B GPCR)
+SLC superfamily of solute carriers	SLC39 family of metal ion transporters
+Voltage-gated ion channel	Voltage-gated calcium channel
+CAMK protein kinase group	CAMK protein kinase TSSK family
+CMGC protein kinase MAPK family	CMGC protein kinase ERK3
+AGC protein kinase group	AGC protein kinase NDR family
+Lipid-like ligand receptor (family A GPCR)	Free fatty acid receptor
+TK protein kinase group	Tyrosine protein kinase Fak family
+SLC superfamily of solute carriers	SLC11 family of proton-coupled metal ion transporters
+Other protein kinase group	Other protein kinase CAMKK family
+Short peptide receptor (family A GPCR)	Neuromedin U receptor
+Cytochrome P450 family 3	Cytochrome P450 family 3A
+Cytochrome P450 family 8	Cytochrome P450 family 8A
+Aquaporin	Water-specific aquaporin
+TKL protein kinase MLK family	TKL protein kinase TAK1 subfamily
+Glucagon-like receptor	Glucagon-like peptide receptor
+Short peptide receptor (family A GPCR)	GnRH receptor
+AGC protein kinase group	AGC protein kinase PKG family
+Transporter	Transmembrane 1-electron transfer carriers
+Phosphodiesterase 8	Phosphodiesterase 8A
+Miscellaneous ion channel	Bcl-2 family
+AGC protein kinase group	AGC protein kinase DMPK family
+Cytochrome P450 family 4	Cytochrome P450 family 4F
+Other protein kinase group	Other protein kinase PEK family
+Cytochrome P450	Cytochrome P450 family 3
+Cytochrome P450	Cytochrome P450 family 4
+Miscellaneous ion channel	Ca2+ release-activated Ca2+ channel family
+Nuclear hormone receptor subfamily 1	Nuclear hormone receptor subfamily 1 group D
+Nuclear hormone receptor subfamily 3 group C	Nuclear hormone receptor subfamily 3 group C member 3
+Opsin	Rhodopsin
+Electrochemical transporter	Mitochondrial pyruvate carrier family
+TK protein kinase group	Tyrosine protein kinase Ack family
+Other protein kinase CAMKK family	Other protein kinase Meta subfamily
+Neurotransmitter receptor (family C GPCR)	GABA-B receptor
+Nuclear hormone receptor subfamily 1 group B	Nuclear hormone receptor subfamily 1 group B member 3
+Nuclear hormone receptor subfamily 4 group A	Nuclear hormone receptor subfamily 4 group A member 2
+Cytochrome P450	Cytochrome P450 family 8
+CAMK protein kinase group	CAMK protein kinase PHk family
+Nuclear receptor	Nuclear hormone receptor subfamily 4
+Voltage-gated ion channel	Voltage-gated sodium channel
+Auxiliary transport protein	Calcium channel auxiliary subunit beta family
+Other ion channel	Aquaporin
+Cytochrome P450 family 4F	Cytochrome P450 4F2
+Protein Kinase	CK1 protein kinase group
+Serine protease SC clan	Serine protease S28 family
+Auxiliary transport protein	Calcium channel auxiliary subunit alpha2delta family
+SLC superfamily of solute carriers	SLC14 family of facilitative urea transporters
+TKL protein kinase MLK family	TKL protein kinase MLK subfamily
+Metallo protease	Metallo protease MJ clan
+Other protein kinase PLK family	Other protein kinase PLK2
+Other protein kinase group	Other protein kinase IKK family
+Cysteine protease CA clan	Cysteine protease C12 family
+Histone deacetylase	HDAC class III
+Family A G protein-coupled receptor	Opsin
+Cytochrome P450 family 2C	Cytochrome P450 2C19
+Short peptide receptor (family A GPCR)	Bradykinin receptor
+Nicotinic acetylcholine receptor	Nicotinic acetylcholine receptor epsilon subunit
+SLC superfamily of solute carriers	SLC46 family of folate transporters
+Monoamine receptor	Serotonin receptor
+SLC superfamily of solute carriers	SLC40 iron transporter
+TK protein kinase group	Tyrosine protein kinase Trk family
+AGC protein kinase group	AGC protein kinase SGK family
+CMGC protein kinase MAPK family	CMGC protein kinase ERK subfamily
+TKL protein kinase group	TKL protein kinase MLK family
+CMGC protein kinase MAPK family	CMGC protein kinase nmo subfamily
+SLC superfamily of solute carriers	SLC47 family of multidrug and toxin extrusion transporters
+Peptide growth factor receptor (family A GPCR)	Prokineticin receptor
+Short peptide receptor (family A GPCR)	Neuromedin receptor
+Serine protease SB clan	Serine protease S8A subfamily
+Nuclear hormone receptor subfamily 3	Nuclear hormone receptor subfamily 3 group C
+STE protein kinase STE11 family	STE protein kinase MEKK2
+TK protein kinase group	Tyrosine protein kinase PDGFR family
+Reader	YEATS domain
+Voltage-gated ion channel	CatSper and Two-Pore channels
+Nuclear hormone receptor subfamily 1 group D	Nuclear hormone receptor subfamily 1 group D member 2
+Threonine protease PBT clan	Threonine protease T1B subfamily
+Lipid-like ligand receptor (family A GPCR)	Steroid-like ligand receptor
+CMGC protein kinase MAPK family	CMGC protein kinase p38 subfamily
+CK1 protein kinase group	CK1 protein kinase CK1 family
+Cytochrome P450 family 8A	Cytochrome P450 8A1
+Ligand-gated ion channel	Acid-sensing ion channel
+Phosphodiesterase 4	Phosphodiesterase 4A
+Methyl-lysine/arginine binding protein	WDR domain
+TKL protein kinase group	TKL protein kinase RAF family
+CMGC protein kinase group	CMGC protein kinase CLK family
+SLC superfamily of solute carriers	SLC18 family of vesicular amine transporters
+AGC protein kinase RSK family	AGC protein kinase p70 subfamily
+Chloride channel	Epithelial chloride channel
+Other protein kinase group	Other protein kinase Wnk family
+Cytochrome P450 family 3A	Cytochrome P450 3A5
+Phosphodiesterase	Phosphodiesterase 8
+Other protein kinase PEK family	Other protein kinase PEK subfamily
+SLC superfamily of solute carriers	SLC01 family of amino acid transporters
+Nuclear hormone receptor subfamily 4	Nuclear hormone receptor subfamily 4 group A
+Metallo protease MJ clan	Metallo protease M19 family
+SLC superfamily of solute carriers	SLC05 family of sodium-dependent glucose transporters
+Peptide receptor (family A GPCR)	Peptide growth factor receptor (family A GPCR)
+AGC protein kinase DMPK family	AGC protein kinase ROCK subfamily
+Nuclear hormone receptor subfamily 3 group C	Nuclear hormone receptor subfamily 3 group C member 2
+Glucagon-like receptor	Growth hormone-releasing hormone receptor
+Cytochrome P450	Cytochrome P450 family 27
+SLC superfamily of solute carriers	SLC26 family of anion exchangers
+Cytochrome P450	Cytochrome P450 family 17
+Cytochrome P450 family 5	Cytochrome P450 family 5A
+Cytochrome P450 family 5A	Cytochrome P450 5A1
+Nuclear hormone receptor subfamily 3 group C	Nuclear hormone receptor subfamily 3 group C member 1
+Phosphodiesterase 10	Phosphodiesterase 10A
+Voltage-gated ion channel	Cyclic nucleotide-regulated channel
+Cytochrome P450 family 2	Cytochrome P450 family 2B
+Histone acetyltransferase	MYST family
+Nicotinic acetylcholine receptor	Nicotinic acetylcholine receptor delta subunit
+Cysteine protease	Cysteine protease PCC clan
+AGC protein kinase group	AGC protein kinase YANK family
+Other protein kinase group	Other protein kinase CK2 family
+Peptide receptor (family B GPCR)	Calcitonin-like receptor
+AGC protein kinase DMPK family	AGC protein kinase GEK subfamily
+Cytochrome P450	Cytochrome P450 family 51
+Phosphodiesterase	Phosphodiesterase 10
+Phosphodiesterase	Phosphodiesterase 5
+Cytochrome P450 family 51	Cytochrome P450 family 51A
+Cysteine protease CE clan	Cysteine protease C48 family
+Methyl-lysine/arginine binding protein	MBT domain
+CMGC protein kinase group	CMGC protein kinase SRPK family
+Guanylate cyclase	Soluble guanylate cyclase
+CMGC protein kinase CDK family	CMGC protein kinase CDK8 subfamily
+Cysteine protease C2 family	Cysteine protease C2 regulatory subfamily
+Cysteine protease CD clan	Cysteine protease C13 family
+Phosphodiesterase 1	Phosphodiesterase 1A
+Cytochrome P450 family 17A	Cytochrome P450 17A1
+Cytochrome P450 family 27	Cytochrome P450 family 27A
+Short peptide receptor (family A GPCR)	Angiotensin receptor
+Short peptide receptor (family A GPCR)	Galanin receptor
+Primary active transporter	Oxidoreduction-driven transporters
+TK protein kinase group	Tyrosine protein kinase Sev family
+Phosphodiesterase 7	Phosphodiesterase 7B
+Cytochrome P450 family 27A	Cytochrome P450 27A1
+Phosphodiesterase 8	Phosphodiesterase 8B
+TK protein kinase group	Tyrosine protein kinase Abl family
+TK protein kinase group	Tyrosine protein kinase JakA family
+Miscellaneous ion channel	CD20 Ca2+ channel family
+Cytochrome P450 family 2B	Cytochrome P450 2B6
+Reader	Methyl-CpG-binding domain
+Nicotinic acetylcholine receptor	Nicotinic acetylcholine receptor gamma subunit
+CAMK protein kinase group	CAMK protein kinase DAPK family
+Potassium channels	Calcium-activated potassium channel
+Cysteine protease PCC clan	Cysteine protease C26 family
+STE protein kinase STE20 family	STE protein kinase NinaC subfamily
+Cytochrome P450 family 17	Cytochrome P450 family 17A
+Monoamine receptor	Trace amine receptor
+Small molecule receptor (family A GPCR)	Carboxylic acid receptor
+Cysteine protease	Cysteine protease CE clan
+Chloride channel	Cystic fibrosis transmembrane conductance regulator
+Metallo protease MAE clan	Metallo protease M2 family
+SLC superfamily of solute carriers	SLC12 family of cation-coupled chloride transporters
+STE protein kinase STE20 family	STE protein kinase TAO subfamily
+Cytochrome P450	Cytochrome P450 family 5
+Calcitonin-like receptor	Calcitonin gene-related peptide receptor
+SLC superfamily of solute carriers	SLC36 family of proton-coupled amino acid transporters
+Nuclear hormone receptor subfamily 1 group C	Nuclear hormone receptor subfamily 1 group C member 2
+Carboxylic acid receptor	Succinate receptor
+Cytochrome P450 family 51A	Cytochrome P450 51A1
+SLC superfamily of solute carriers	SLC10 family of sodium-bile acid co-transporters
+Calcitonin-like receptor	Calcitonin receptor
+Phosphodiesterase 5	Phosphodiesterase 5A
+Cytochrome P450 family 2C	Cytochrome P450 2C9
+Auxiliary transport protein	Calcium-activated potassium channel auxiliary subunit slowpoke-beta family
+Phosphodiesterase 4	Phosphodiesterase 4B
+CAMK protein kinase CAMK1 family	CAMK protein kinase LKB subfamily
+Nuclear hormone receptor subfamily 2	Nuclear hormone receptor subfamily 2 group C
+Atypical protein kinase group	Atypical protein kinase alpha family
+Mitochondrial and plastid porin family	Voltage-dependent anion-selective channel
+Glycohormone receptor	Glycohormone receptor
+Other ion channel	Annexin
+Nuclear hormone receptor subfamily 2	Nuclear hormone receptor subfamily 2 group F
+CMGC protein kinase RCK family	CMGC protein kinase MAK
+Chemokine receptor-like	Chemerin receptor
+Other protein kinase group	Other protein kinase Haspin family
+Metallo protease MAM clan	Metallo protease M12A subfamily
+Cytochrome P450	Cytochrome P450 family 24
+Cytochrome P450 family 2E	Cytochrome P450 2E1
+Auxiliary transport protein	Calcium channel auxiliary subunit gamma family
+Auxiliary transport protein	Slow voltage-gated potassium channel accessory protein family
+Cytochrome P450 family 2	Cytochrome P450 family 2A
+CMGC protein kinase MAPK family	CMGC protein kinase JNK subfamily
+Cytochrome P450 family 24	Cytochrome P450 family 24A
+AGC protein kinase group	AGC protein kinase PKA family
+AGC protein kinase GRK family	AGC protein kinase GRK subfamily
+Lipid-like ligand receptor (family A GPCR)	PAF receptor
+Lipid-like ligand receptor (family A GPCR)	Lysophosphatidylinositol receptor
+Metallo protease	Metallo protease MF clan
+AGC protein kinase PKC family	AGC protein kinase PKC delta subfamily
+Nuclear hormone receptor subfamily 1 group B	Nuclear hormone receptor subfamily 1 group B member 2
+Metallo protease MH clan	Metallo protease M18 family
+Peptide receptor (family A GPCR)	Glycohormone receptor
+Metallo protease MF clan	Metallo protease M17 family
+Atypical protein kinase PIKK family	Atypical protein kinase FRAP subfamily
+AGC protein kinase group	AGC protein kinase GRK family
+AGC protein kinase group	AGC protein kinase PKC family
+Nuclear hormone receptor subfamily 0 group B	Nuclear hormone receptor subfamily 0 group B member 1
+Short peptide receptor (family A GPCR)	Adrenomedullin receptor
+Nuclear receptor	Nuclear hormone receptor subfamily 0
+Nuclear hormone receptor subfamily 2 group C	Nuclear hormone receptor subfamily 2 group C member 2
+Other ion channel	Vesicle fusion pores
+SLC superfamily of solute carriers	SLC43 family of large neutral amino acid transporters
+Cytochrome P450 family 2	Cytochrome P450 family 2E
+Cytochrome P450 family 2C	Cytochrome P450 2C18
+Other protein kinase PEK family	Other protein kinase HRI
+Electrochemical transporter	Vesicular neurotransmitter transporter family
+Other protein kinase group	Other protein kinase TLK family
+Phosphodiesterase 1	Phosphodiesterase 1C
+Cytochrome P450 family 27B	Cytochrome P450 27B1
+TKL protein kinase group	TKL protein kinase RIPK family
+Short peptide receptor (family A GPCR)	GRP-related receptor
+Cytochrome P450 family 24A	Cytochrome P450 24A1
+STE protein kinase STE20 family	STE protein kinase MSN subfamily
+TK protein kinase group	Tyrosine protein kinase Syk family
+Other protein kinase group	Other protein kinase unique family
+Cytochrome P450 family 27	Cytochrome P450 family 27B
+Nuclear hormone receptor subfamily 2 group F	Nuclear hormone receptor subfamily 2 group F member 1
+Other ion channel	Mitochondrial and plastid porin family
+AGC protein kinase group	AGC protein kinase MAST family
+Nuclear hormone receptor subfamily 0	Nuclear hormone receptor subfamily 0 group B
+TKL protein kinase group	TKL protein kinase IRAK family
+CMGC protein kinase group	CMGC protein kinase RCK family
+CK1 protein kinase CK1 family	CK1 protein kinase CK1-g
+Short peptide receptor (family A GPCR)	Neurokinin receptor
+CAMK protein kinase CAMK1 family	CAMK protein kinase PASK subfamily
+Cytochrome P450 family 4A	Cytochrome P450 4A11
+Nuclear hormone receptor subfamily 2 group C	Nuclear hormone receptor subfamily 2 group C member 1
+Carboxylic acid receptor	Hydroxycarboxylic acid receptor
+TKL protein kinase MLK family	TKL protein kinase LZK subfamily
+Histone deacetylase	HDAC class IV
+Short peptide receptor (family A GPCR)	Endothelin receptor
+AGC protein kinase PKC family	AGC protein kinase PKC iota subfamily
+CAMK protein kinase MAPKAPK family	CAMK protein kinase MAPKAPK subfamily
+CMGC protein kinase DYRK family	CMGC protein kinase Dyrk2 subfamily
+Carboxylic acid receptor	Kynurenic acid receptor
+Glucagon-like receptor	Secretin receptor receptor
+Short peptide receptor (family A GPCR)	MCH receptor
+AGC protein kinase GRK family	AGC protein kinase BARK subfamily
+CAMK protein kinase CAMK1 family	CAMK protein kinase CHK1 subfamily
+Auxiliary transport protein	Sodium channel auxiliary subunit beta family
+Nuclear hormone receptor subfamily 1 group C	Nuclear hormone receptor subfamily 1 group C member 3
+Other protein kinase group	Other protein kinase TOPK family
+Cytochrome P450 family 4	Cytochrome P450 family 4A
+Ligand-gated ion channel	Ryanodine receptor
+Chemokine receptor	XC chemokine receptor
+SLC superfamily of solute carriers	SLC16 family of monocarboxylate transporters
+AGC protein kinase RSK family	AGC protein kinase RSK subfamily
+TK protein kinase group	Tyrosine protein kinase Ret family
+CAMK protein kinase group	CAMK protein kinase RAD53 family
+SLC superfamily of solute carriers	SLC19 family of vitamin transporters
+Short peptide receptor (family A GPCR)	Neurotensin receptor
+Nuclear hormone receptor subfamily 3 group B	Nuclear hormone receptor subfamily 3 group B member 1
+Atypical protein kinase ABC1 family	Atypical protein kinase ABC1-A subfamily
+Nuclear hormone receptor subfamily 1 group F	Nuclear hormone receptor subfamily 1 group F member 1
+Cytochrome P450 family 11	Cytochrome P450 family 11A
+CAMK protein kinase group	CAMK protein kinase MLCK family
+P-type ATPase	Hydrogen potassium ATPase
+Nuclear hormone receptor subfamily 1 group D	Nuclear hormone receptor subfamily 1 group D member 1
+Nuclear hormone receptor subfamily 2 group F	Nuclear hormone receptor subfamily 2 group F member 2
+Cytochrome P450 family 7A	Cytochrome P450 7A1
+Threonine protease PBT clan	Threonine protease T2 family
+Serine protease SC clan	Serine protease S9A subfamily
+Nuclear hormone receptor subfamily 4 group A	Nuclear hormone receptor subfamily 4 group A member 1
+Cytochrome P450	Cytochrome P450 family 7
+Aspartic protease A22A subfamily	Aspartic protease A22A regulatory subfamily
+Aspartic protease AD clan	Aspartic protease A22A subfamily
+Other protein kinase PEK family	Other protein kinase PKR
+Parathyroid hormone receptor	Parathyroid hormone receptor
+SLC superfamily of solute carriers	SLC33 acetylCoA transporter
+Aspartic protease	Aspartic protease AD clan
+Other protein kinase group	Other protein kinase NAK family
+Nuclear hormone receptor subfamily 2	Nuclear hormone receptor subfamily 2 group A
+Serine protease SC clan	Serine protease S33 family
+Cytochrome P450	Cytochrome P450 family 11
+AGC protein kinase PKC family	AGC protein kinase PKC alpha subfamily
+Nuclear hormone receptor subfamily 2 group A	Nuclear hormone receptor subfamily 2 group A member 2
+Cytochrome P450 family 2A	Cytochrome P450 2A6
+Cytochrome P450 family 7	Cytochrome P450 family 7A
+STE protein kinase STE20 family	STE protein kinase PAKA subfamily
+Monoamine receptor	Histamine receptor
+Nuclear hormone receptor subfamily 1	Nuclear hormone receptor subfamily 1 group F
+Phosphodiesterase 11	Phosphodiesterase 11A
+CAMK protein kinase CAMK1 family	CAMK protein kinase QIK subfamily
+STE protein kinase group	STE protein kinase unique family
+Other protein kinase group	Other protein kinase MOS family
+Other protein kinase PEK family	Other protein kinase GCN2 subfamily
+Cytochrome P450 family 11A	Cytochrome P450 11A1
+Peptide receptor (family B GPCR)	Parathyroid hormone receptor
+Atypical protein kinase group	Atypical protein kinase ABC1 family
+Nuclear hormone receptor subfamily 1 group A	Nuclear hormone receptor subfamily 1 group A member 2
+Phosphodiesterase	Phosphodiesterase 11
+CK1 protein kinase CK1 family	CK1 protein kinase CK1-a
+Protease	Protease unclassified
+Nuclear hormone receptor subfamily 2 group E	Nuclear hormone receptor subfamily 2 group E member 1
+Other protein kinase WEE family	Other protein kinase WEE1
+Phosphodiesterase 4	Phosphodiesterase 4C
+Short peptide receptor (family A GPCR)	Prolactin-releasing peptide receptor
+AGC protein kinase group	AGC protein kinase PDK1 subfamily
+CMGC protein kinase MAPK family	CMGC protein kinase ERK5
+Frizzled family G protein-coupled receptor	Smoothened receptor (frizzled family GPCR)
+Phosphodiesterase 3	Phosphodiesterase 3B
+Protease unclassified U family	Protease unclassified U48 family
+Metallo protease MAE clan	Metallo protease M49 family
+Other protein kinase group	Other protein kinase WEE family
+Protein Phosphatase	Serine protein phosphatase
+SLC superfamily of solute carriers	SLC37 family of phosphosugar/phosphate exchangers
+ATP-binding cassette	ABCA subfamily
+TKL protein kinase MLK family	TKL protein kinase ILK subfamily
+Nuclear hormone receptor subfamily 1 group I	Nuclear hormone receptor subfamily 1 group I member 2
+Nuclear hormone receptor subfamily 0 group B	Nuclear hormone receptor subfamily 0 group B member 2
+Short peptide receptor (family A GPCR)	Cholecystokinin receptor
+AGC protein kinase PKC family	AGC protein kinase PKC eta subfamily
+Protease unclassified	Protease unclassified U family
+Carboxylic acid receptor	Oxoglutarate receptor
+Corticotropin releasing factor receptor	Corticotropin releasing factor receptor
+TK protein kinase group	Tyrosine protein kinase InsR family
+Cytochrome P450 family 4	Cytochrome P450 family 4X
+Other ion channel	Phospholemman family
+Cytochrome P450 family 3A	Cytochrome P450 3A4
+Peptide receptor (family B GPCR)	Corticotropin releasing factor receptor
+CK1 protein kinase group	CK1 protein kinase VRK family
+Cytochrome P450 family 4X	Cytochrome P450 4X1
+Nuclear hormone receptor subfamily 3 group C	Nuclear hormone receptor subfamily 3 group C member 4
+Other protein kinase NEK family	Other protein kinase Nek1
+Glucagon-like receptor	Gastric inhibitory polypeptide receptor
+Chloride channel	Calcium-activated chloride channel
+Cysteine protease C14 family	Cysteine protease C14A subfamily
+Protein methyltransferase	PR domain
+Other protein kinase group	Other protein kinase TTK family
+TKL protein kinase MLK family	TKL protein kinase HH498 subfamily
+Nuclear hormone receptor subfamily 6	Nuclear hormone receptor subfamily 6 group A
+CAMK protein kinase CAMK1 family	CAMK protein kinase NIM1 subfamily
+TK protein kinase group	Tyrosine protein kinase Tie family
+ATP-binding cassette	ABCG subfamily
+Nuclear receptor	Nuclear hormone receptor subfamily 6
+SLC superfamily of solute carriers	SLC51 family of steroid-derived molecule transporters
+Atypical protein kinase RIO family	Atypical protein kinase RIO2 subfamily
+AGC protein kinase DMPK family	AGC protein kinase CRIK subfamily
+Short peptide receptor (family A GPCR)	Motilin receptor
+Nuclear hormone receptor subfamily 3 group B	Nuclear hormone receptor subfamily 3 group B member 2
+STE protein kinase STE20 family	STE protein kinase FRAY subfamily
+Nuclear hormone receptor subfamily 6 group A	Nuclear hormone receptor subfamily 6 group A member 1
+Cytochrome P450 family 11	Cytochrome P450 family 11B
+Cytochrome P450 family 11B	Cytochrome P450 11B2
+Nuclear hormone receptor subfamily 1 group F	Nuclear hormone receptor subfamily 1 group F member 3
+Metallo protease MAE clan	Metallo protease M48A subfamily
+TKL protein kinase LISK family	TKL protein kinase TESK subfamily
+Calcium sensing receptor	Calcium sensing receptor
+Cytochrome P450 family 11B	Cytochrome P450 11B1
+Nuclear hormone receptor subfamily 2 group F	Nuclear hormone receptor subfamily 2 group F member 6
+Cytochrome P450	Cytochrome P450 family 21
+SLC superfamily of solute carriers	SLC23 family of ascorbic acid transporters
+Family C G protein-coupled receptor	Ion receptor (family C GPCR)
+Cytochrome P450 family 26A	Cytochrome P450 26A1
+Primary active transporter	Endoplasmic reticular retrotranslocon family
+Nuclear hormone receptor subfamily 1 group H	Nuclear hormone receptor subfamily 1 group H member 4
+Cytochrome P450 family 21	Cytochrome P450 family 21A
+TK protein kinase group	Tyrosine protein kinase Alk family
+CAMK protein kinase RSKb family	CAMK protein kinase MSKb subfamily
+Ion receptor (family C GPCR)	Calcium sensing receptor
+TK protein kinase group	Tyrosine protein kinase Musk family
+Cytochrome P450 family 26	Cytochrome P450 family 26A
+Cytochrome P450 family 21A	Cytochrome P450 21A2
+Nuclear hormone receptor subfamily 4 group A	Nuclear hormone receptor subfamily 4 group A member 3
+CAMK protein kinase CAMK1 family	CAMK protein kinase MELK subfamily
