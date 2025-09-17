@@ -27,6 +27,12 @@ jobs:
         name: bundle
         path: bundle
 
+    - name: Extract bundle
+      run: |
+        cd bundle
+        tar -xzf bundle.tar.gz
+        rm bundle.tar.gz
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
