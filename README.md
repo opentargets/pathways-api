@@ -1,56 +1,161 @@
 # Open Targets Pathways API
 
-**Open Targets Pathways API** is a specialized API service 
+**Open Targets Pathways API** is a comprehensive API service for pathway analysis and visualization, providing endpoints for GSEA (Gene Set Enrichment Analysis), pathway hierarchy exploration, and UMAP dimensionality reduction.
 
-### Requirements
+## Features
 
-- **Python 3.8+**
-- [**FastAPI**](https://fastapi.tiangolo.com/) for API management
-- [**UV**](https://docs.astral.sh/uv/) for dependency and environment management
-- **Docker** for deployment
+- **GSEA Analysis**: Perform gene set enrichment analysis with multiple pathway databases
+- **Pathway Hierarchy**: Explore hierarchical relationships between pathways
+- **UMAP Visualization**: Generate UMAP plots for high-dimensional data visualization
+- **Interactive UI**: Modern React-based web interface for data exploration
+- **RESTful API**: Well-documented API with OpenAPI/Swagger documentation
 
-### Setup and Installation
+## Requirements
+
+- **Python 3.12+**
+- **Node.js 20+** (for frontend development)
+- [**UV**](https://docs.astral.sh/uv/) for Python dependency management
+- **Docker** for containerized deployment
+
+## Quick Start
+
+### Using Docker (Recommended)
 
 1. **Clone the repository**:
-
    ```bash
    git clone git@github.com:opentargets/pathways-api.git
    cd pathways-api
    ```
 
-2. **Install dependencies** using UV:
-
+2. **Run with Docker Compose**:
    ```bash
-   uv sync
+   make compose up
    ```
 
-3. **Run development server**:
+3. **Access the application**:
+   - API: http://localhost:8000
+   - UI: http://localhost:8000/ui
+   - API Docs: http://localhost:8000/docs
 
+### Development Setup
+
+1. **Install dependencies**:
    ```bash
-   uv run fastapi dev
+   make install-deps
    ```
 
-### Usage
+2. **Start development servers**:
+   ```bash
+   # Start UI development server
+   make start dev ui
+   
+   # In another terminal, start API with built UI
+   make start api dev
+   ```
 
-- Access Swagger documentation at [http://localhost:8000/docs](http://localhost:8000/docs).
-- Access ReDoc documentation at [http://localhost:8000/redoc](http://localhost:8000/redoc).
+## Docker Deployment
 
-### Building production-ready bundle with docker
+### Building the Image
 
-Build your image:
+```bash
+# Build the Docker image
+make docker build
 
+# Or manually
+docker build -t pathways-api:latest .
 ```
-$ docker build . -t <your username>/ot-ai-api
+
+### Running the Container
+
+```bash
+# Run with Make
+make docker run
+
+# Or manually
+docker run -d --name pathways-api -p 8000:8000 pathways-api:latest
 ```
 
-Run your image:
-For running the image you need to map the port to whatever you wish to use on your host. In this example, we simply map port 49160 of the host to port 8080 of the Docker.
+### Using Docker Compose
 
-Youl will also need to provide your own OpenAI key via the environment variable `OPENAI_TOKEN`.
+```bash
+# Start all services
+make compose up
 
+# Stop all services
+make compose down
+
+# View logs
+make compose logs
 ```
-$ docker run -p 49160:8080 -e "OPENAI_TOKEN=XXXXXXXXXXX" -d <your username>/ot-ai-api
+
+## GitHub Releases
+
+This project uses automated GitHub Actions for building and releasing Docker images:
+
+### Automatic Releases
+
+- **On every push to `main`**: Builds and pushes Docker images to GitHub Container Registry
+- **On version tags** (`v*`): Creates GitHub releases with Docker images
+
+### Manual Release Process
+
+1. **Update version** in `pyproject.toml`:
+   ```toml
+   version = "0.2.0"
+   ```
+
+2. **Create and push a tag**:
+   ```bash
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+
+3. **GitHub Actions will automatically**:
+   - Build multi-architecture Docker images (AMD64, ARM64)
+   - Push to `ghcr.io/opentargets/pathways-api`
+   - Create a GitHub release with changelog
+
+### Available Docker Images
+
+- `ghcr.io/opentargets/pathways-api:latest` - Latest stable release
+- `ghcr.io/opentargets/pathways-api:v0.1.0` - Specific version
+- `ghcr.io/opentargets/pathways-api:main` - Latest from main branch
+
+## API Documentation
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+- **OpenAPI Schema**: http://localhost:8000/openapi.json
+
+## Available Commands
+
+```bash
+# Development
+make start dev ui      # Start UI development server
+make start api dev     # Start API with built UI
+make install-deps      # Install all dependencies
+make clean            # Clean up build artifacts
+
+# Docker
+make docker build     # Build Docker image
+make docker run       # Run Docker container
+make docker stop      # Stop Docker container
+make docker logs      # Show container logs
+make docker push      # Push to registry
+
+# Docker Compose
+make compose up       # Start services
+make compose down     # Stop services
+make compose logs     # Show logs
 ```
+
+## Configuration
+
+The application can be configured using environment variables:
+
+- `DEBUG`: Enable debug mode (default: `false`)
+- `CORS_ORIGINS`: Allowed CORS origins (comma-separated)
+- `APP_NAME`: Application name (default: "Pathways API")
 
 ## Copyright
 

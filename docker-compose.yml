@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  pathways-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=false
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+    volumes:
+      # Mount data directory for development
+      - ./app/data:/app/app/data:ro
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a reverse proxy for production-like setup
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - pathways-api
+    restart: unless-stopped
+    profiles:
+      - production
