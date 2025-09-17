@@ -5,7 +5,7 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app/ui
 
 # Copy package files
-COPY ui/package*.json ./
+COPY ui/package.json ui/package-lock.json ./
 
 # Install frontend dependencies
 RUN npm install
