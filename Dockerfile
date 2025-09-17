@@ -8,7 +8,7 @@ WORKDIR /app/ui
 COPY ui/package*.json ./
 
 # Install frontend dependencies
-RUN npm ci
+RUN npm install
 
 # Copy frontend source code
 COPY ui/ ./
