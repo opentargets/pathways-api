@@ -29,9 +29,12 @@ jobs:
         version: "latest"
 
     - name: Install dependencies
+      run: uv sync
+
+    - name: Install linting tools
       run: |
-        uv sync
-        uv sync --group lint
+        uv add ruff
+        uv run ruff --version
 
     - name: Run linting
       run: uv run ruff check app/
