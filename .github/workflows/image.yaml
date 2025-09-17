@@ -92,6 +92,15 @@ jobs:
           echo "Bundle already extracted or not in tar.gz format"
         fi
 
+    - name: Debug bundle contents
+      run: |
+        echo "Bundle directory contents:"
+        ls -la bundle/
+        echo "UI directory contents:"
+        ls -la bundle/ui/ || echo "UI directory not found"
+        echo "Package.json exists:"
+        ls -la bundle/ui/package.json || echo "package.json not found"
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -122,5 +131,3 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
