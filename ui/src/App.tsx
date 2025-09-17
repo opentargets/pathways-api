@@ -13,7 +13,7 @@ function App() {
 		<ApolloProvider client={client}>
 			<ThemeProvider theme={theme}>
 				<CssBaseline />
-				<Router>
+				<Router basename="/ui">
 					<div
 						style={{
 							minHeight: "100vh",

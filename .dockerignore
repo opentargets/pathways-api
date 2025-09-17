@@ -4,9 +4,7 @@
 .gitattributes
 
 # Documentation
-README.md
 LICENSE
-*.md
 
 # Python
 __pycache__/

@@ -8,7 +8,7 @@ WORKDIR /app/ui
 COPY ui/package*.json ./
 
 # Install frontend dependencies
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy frontend source code
 COPY ui/ ./
@@ -22,6 +22,9 @@ FROM python:3.12-slim
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
   curl \
+  build-essential \
+  gcc \
+  g++ \
   && rm -rf /var/lib/apt/lists/*
 
 # Install uv
@@ -30,8 +33,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Set working directory
 WORKDIR /app
 
-# Copy Python dependencies
-COPY pyproject.toml uv.lock ./
+# Copy Python dependencies and README
+COPY pyproject.toml uv.lock README.md ./
 
 # Install Python dependencies
 RUN uv sync --frozen --no-cache
