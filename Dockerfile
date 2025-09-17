@@ -45,9 +45,6 @@ COPY app/ ./app/
 # Copy built frontend from previous stage
 COPY --from=frontend-builder /app/ui/dist ./ui/dist
 
-# Copy static assets
-COPY ui/src/assets ./ui/src/assets
-
 # Expose port
 EXPOSE 8000
 
