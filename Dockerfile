@@ -7,6 +7,9 @@ WORKDIR /app/ui
 # Copy package files
 COPY ui/package*.json ./
 
+# Debug: List files and check package-lock.json
+RUN ls -la && cat package.json
+
 # Install frontend dependencies
 RUN npm ci
 
