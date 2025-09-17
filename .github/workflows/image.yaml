@@ -46,7 +46,7 @@ jobs:
         
         # Install frontend dependencies
         cd ui
-        npm ci
+        npm install
         
         # Build frontend
         npm run build
