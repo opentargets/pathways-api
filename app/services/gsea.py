@@ -118,7 +118,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
         res_df["Link"] = "https://www.ebi.ac.uk/chembl/visualise"
 
     # --- Size = number of genes defined in GMT ---
-    res_df["Size"] = res_df["ID"].map(
+    res_df["Pathway size"] = res_df["ID"].map(
         lambda x: len(id_to_genes.get(x, [])) if pd.notna(x) and x != "" else 0
     )
 
@@ -147,7 +147,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
             res_df.groupby(
                 [
                     "ID", "Link", "Pathway", "ES", "NES", "FDR", "p-value",
-                    "Sidak's p-value", "Input gene number", "Leading edge genes", "Size"
+                    "Sidak's p-value", "Input gene number", "Leading edge genes", "Pathway size"
                 ],
                 dropna=False
             )["Parent pathway"]
@@ -168,7 +168,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
             df_[col_name] = pd.to_numeric(s, errors='coerce').fillna(0).astype(int)
 
     safe_int_col(res_df, "Input gene number")
-    safe_int_col(res_df, "Size")
+    safe_int_col(res_df, "Pathway size")
 
     return res_df
 

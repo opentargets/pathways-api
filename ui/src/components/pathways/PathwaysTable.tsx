@@ -42,21 +42,26 @@ const PathwaysTable: React.FC<PathwaysTableProps> = ({ pathways }) => {
 		const columnOrder = [
 			"ID",
 			"Pathway",
+			"Pathway size",
 			"Parent Pathway",
-			"Leading edge genes",
 			"NES",
 			"ES",
 			"FDR",
+			"p-value",
+			"Sidak's p-value",
+			"Input gene number",
+			"Leading edge genes"
+			
 		];
 
 		// Sort columns: first by the defined order, then alphabetically for any remaining columns
 		return allKeysFromPathways.sort((a, b) => {
-			const aIndex = columnOrder.findIndex((col) =>
-				a.toLowerCase().includes(col.toLowerCase()),
-			);
-			const bIndex = columnOrder.findIndex((col) =>
-				b.toLowerCase().includes(col.toLowerCase()),
-			);
+			const aIndex = columnOrder.findIndex(
+				(col) => col.toLowerCase() === a.toLowerCase()
+			  );
+			  const bIndex = columnOrder.findIndex(
+				(col) => col.toLowerCase() === b.toLowerCase()
+			  );
 
 			// If both are in the defined order, sort by their position
 			if (aIndex !== -1 && bIndex !== -1) {
@@ -95,15 +100,25 @@ const PathwaysTable: React.FC<PathwaysTableProps> = ({ pathways }) => {
 			if (aValue === undefined || aValue === null) return 1;
 			if (bValue === undefined || bValue === null) return -1;
 
-			// Convert to strings for comparison
+			// Handle numbers properly
+			const aNum = Number(aValue);
+			const bNum = Number(bValue);
+			const bothNumbers = !isNaN(aNum) && !isNaN(bNum);
+
+			if (bothNumbers) {
+			return sortConfig.direction === "asc"
+				? aNum - bNum
+				: bNum - aNum;
+			}
+
+			// Fallback: string comparison
 			const aStr = String(aValue);
 			const bStr = String(bValue);
 
-			if (sortConfig.direction === "asc") {
-				return aStr.localeCompare(bStr);
-			} else {
-				return bStr.localeCompare(aStr);
-			}
+			return sortConfig.direction === "asc"
+			? aStr.localeCompare(bStr)
+			: bStr.localeCompare(aStr);
+
 		});
 	}, [pathways, sortConfig]);
 
@@ -115,18 +130,17 @@ const PathwaysTable: React.FC<PathwaysTableProps> = ({ pathways }) => {
 	};
 
 	const formatValue = (value: unknown, key: string, pathway: Pathway) => {
-		if (value === undefined || value === null) {
-			return "-";
-		}
-
-		// Format numeric values to 2 decimal places
+		if (value === undefined || value === null) return "-";
+	
+		// Columns that should have 0 decimal places
 		if (typeof value === "number") {
+			if (key === "Pathway size" || key === "Input gene number") return value.toFixed(0);
 			return value.toFixed(2);
 		}
-
+	
 		// Handle ID column as external link
 		if (key.toLowerCase().includes("id") && typeof value === "string") {
-			const linkUrl = pathway.Link || pathway.link;
+			const linkUrl = (pathway as any).Link || (pathway as any).link;
 			if (linkUrl) {
 				return (
 					<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -142,9 +156,10 @@ const PathwaysTable: React.FC<PathwaysTableProps> = ({ pathways }) => {
 				);
 			}
 		}
-
+	
 		return String(value);
 	};
+	
 
 	if (pathways.length === 0) {
 		return (
