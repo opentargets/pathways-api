@@ -56,7 +56,6 @@ jobs:
         mkdir -p bundle
         cp -r app bundle/
         cp -r ui/dist bundle/ui/
-        cp -r ui/src/assets bundle/ui/
         cp pyproject.toml bundle/
         cp uv.lock bundle/
         cp Dockerfile bundle/
