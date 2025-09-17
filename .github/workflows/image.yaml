@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     tags: [ 'v*' ]
   workflow_dispatch:
+  workflow_call:
 
 env:
   REGISTRY: ghcr.io
@@ -21,11 +22,56 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Download bundle artifact
+    - name: Try to download bundle artifact
       uses: actions/download-artifact@v4
       with:
         name: bundle
         path: bundle
+      continue-on-error: true
+
+    - name: Build bundle if not available
+      if: failure()
+      run: |
+        # Set up Python
+        python -m pip install --upgrade pip
+        pip install uv
+        
+        # Install dependencies
+        uv sync
+        
+        # Set up Node.js
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        
+        # Install frontend dependencies
+        cd ui
+        npm ci
+        
+        # Build frontend
+        npm run build
+        cd ..
+        
+        # Create bundle
+        mkdir -p bundle
+        cp -r app bundle/
+        cp -r ui/dist bundle/ui/
+        cp -r ui/src/assets bundle/ui/
+        cp pyproject.toml bundle/
+        cp uv.lock bundle/
+        cp Dockerfile bundle/
+        cp .dockerignore bundle/
+        cp docker-compose.yml bundle/
+        cp nginx.conf bundle/
+        cp Makefile bundle/
+        cp README.md bundle/
+        
+        # Create tar.gz archive
+        cd bundle
+        tar -czf ../bundle.tar.gz .
+        cd ..
+        rm -rf bundle
+        mkdir bundle
+        mv bundle.tar.gz bundle/
 
     - name: Extract bundle
       run: |
