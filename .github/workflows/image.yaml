@@ -30,8 +30,17 @@ jobs:
         path: bundle
       continue-on-error: true
 
+    - name: Check if bundle exists
+      id: check-bundle
+      run: |
+        if [ -d "bundle" ] && [ -f "bundle/bundle.tar.gz" ]; then
+          echo "bundle-exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "bundle-exists=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Build bundle if not available
-      if: steps.download-bundle.outcome == 'failure'
+      if: steps.check-bundle.outputs.bundle-exists == 'false'
       run: |
         # Set up Python
         python -m pip install --upgrade pip
