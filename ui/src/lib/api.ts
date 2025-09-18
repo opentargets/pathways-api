@@ -1,4 +1,7 @@
-const API_BASE_URL = 'http://localhost:8000';
+// Use relative URLs for production, localhost for development
+const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+  ? 'http://localhost:8000'
+  : '';
 
 export type Pathway = Record<string, any>;
 
