@@ -9,18 +9,14 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yaml
 
-  build:
-    uses: ./.github/workflows/build.yaml
+  build-and-image:
+    uses: ./.github/workflows/build-and-image.yaml
     needs: ci
-
-  image:
-    uses: ./.github/workflows/image.yaml
-    needs: build
 
   release:
     name: Release 🚀
     runs-on: ubuntu-22.04
-    needs: build
+    needs: build-and-image
     permissions:
       contents: write
     steps:
