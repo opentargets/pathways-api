@@ -56,6 +56,14 @@ jobs:
         cp nginx.conf bundle/
         cp Makefile bundle/
         cp README.md bundle/
+        
+        # Debug: Show what's in the bundle
+        echo "Bundle contents:"
+        ls -la bundle/
+        echo "UI directory contents:"
+        ls -la bundle/ui/
+        echo "UI dist directory contents:"
+        ls -la bundle/ui/dist/ || echo "ui/dist not found"
 
     - name: Upload bundle artifact
       uses: actions/upload-artifact@v4
