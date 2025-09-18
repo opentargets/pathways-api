@@ -42,7 +42,11 @@ jobs:
     - name: Create bundle directory
       run: |
         mkdir -p bundle
+        # Copy app directory and rename files with colons
         cp -r app bundle/
+        # Rename files with colons to make them artifact-compatible
+        find bundle/app/data -name "*:*" -exec sh -c 'mv "$1" "$(echo "$1" | tr ":" "_")"' _ {} \;
+        # Copy other essential files
         cp -r ui bundle/
         cp pyproject.toml bundle/
         cp uv.lock bundle/
