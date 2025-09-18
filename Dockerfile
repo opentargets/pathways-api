@@ -1,21 +1,3 @@
-# Multi-stage build for production
-FROM node:20-alpine AS frontend-builder
-
-# Set working directory for frontend
-WORKDIR /app/ui
-
-# Copy package files
-COPY ui/package.json ui/package-lock.json ./
-
-# Install frontend dependencies
-RUN npm install
-
-# Copy frontend source code
-COPY ui/ ./
-
-# Build the frontend
-RUN npm run build
-
 # Python backend stage
 FROM python:3.12-slim
 
@@ -42,8 +24,8 @@ RUN uv sync --frozen
 # Copy application code
 COPY app/ ./app/
 
-# Copy built frontend from previous stage
-COPY --from=frontend-builder /app/ui/dist ./ui/dist
+# Copy built frontend from GitHub Actions build
+COPY ui/dist ./ui/dist
 
 # Expose port
 EXPOSE 8000
