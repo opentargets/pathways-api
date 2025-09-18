@@ -3,7 +3,6 @@ name: Build Docker Image
 on:
   push:
     branches: [ main ]
-    tags: [ 'v*' ]
   workflow_dispatch:
   workflow_call:
 
@@ -30,10 +29,20 @@ jobs:
         path: bundle
       continue-on-error: true
 
-    - name: Check if bundle exists
+    - name: Extract bundle
+      run: |
+        if [ -f "bundle/bundle.tar.gz" ]; then
+          cd bundle
+          tar -xzf bundle.tar.gz
+          rm bundle.tar.gz
+        else
+          echo "Bundle already extracted or not in tar.gz format"
+        fi
+
+    - name: Check if bundle exists after extraction
       id: check-bundle
       run: |
-        if [ -d "bundle" ] && [ -f "bundle/bundle.tar.gz" ]; then
+        if [ -d "bundle" ] && [ -f "bundle/ui/package.json" ]; then
           echo "bundle-exists=true" >> $GITHUB_OUTPUT
         else
           echo "bundle-exists=false" >> $GITHUB_OUTPUT
@@ -82,15 +91,14 @@ jobs:
         mkdir bundle
         mv bundle.tar.gz bundle/
 
-    - name: Extract bundle
+    - name: Debug bundle contents
       run: |
-        if [ -f "bundle/bundle.tar.gz" ]; then
-          cd bundle
-          tar -xzf bundle.tar.gz
-          rm bundle.tar.gz
-        else
-          echo "Bundle already extracted or not in tar.gz format"
-        fi
+        echo "Bundle directory contents:"
+        ls -la bundle/
+        echo "UI directory contents:"
+        ls -la bundle/ui/ || echo "UI directory not found"
+        echo "Package.json exists:"
+        ls -la bundle/ui/package.json || echo "package.json not found"
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -122,5 +130,3 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
