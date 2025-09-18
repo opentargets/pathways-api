@@ -39,21 +39,25 @@ jobs:
         cd ui
         npm run build
 
+    - name: Create bundle directory
+      run: |
+        mkdir -p bundle
+        cp -r app bundle/
+        cp -r ui bundle/
+        cp pyproject.toml bundle/
+        cp uv.lock bundle/
+        cp Dockerfile bundle/
+        cp .dockerignore bundle/
+        cp docker-compose.yml bundle/
+        cp nginx.conf bundle/
+        cp Makefile bundle/
+        cp README.md bundle/
+
     - name: Upload bundle artifact
       uses: actions/upload-artifact@v4
       with:
         name: bundle
-        path: |
-          app/
-          ui/
-          pyproject.toml
-          uv.lock
-          Dockerfile
-          .dockerignore
-          docker-compose.yml
-          nginx.conf
-          Makefile
-          README.md
+        path: bundle/
         retention-days: 1
 
     - name: Set up Docker Buildx
@@ -81,7 +85,7 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
-        context: .
+        context: ./bundle
         platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta.outputs.tags }}
