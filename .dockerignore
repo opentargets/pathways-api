@@ -56,7 +56,6 @@ Thumbs.db
 
 # Node.js
 ui/node_modules/
-ui/dist/
 ui/.vite/
 ui/coverage/
 ui/.nyc_output/
@@ -119,7 +118,6 @@ node_modules/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
