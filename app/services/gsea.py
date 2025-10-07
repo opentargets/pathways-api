@@ -129,7 +129,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
         "fdr": "FDR",
         "pval": "p-value",
         "sidak": "Sidak's p-value",
-        "geneset_size": "Input gene number",
+        "geneset_size": "Number of input genes",
         "leading_edge": "Leading edge genes",
     }
     res_df = res_df.rename(columns=rename_map)
@@ -147,7 +147,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
             res_df.groupby(
                 [
                     "ID", "Link", "Pathway", "ES", "NES", "FDR", "p-value",
-                    "Sidak's p-value", "Input gene number", "Leading edge genes", "Pathway size"
+                    "Sidak's p-value", "Number of input genes", "Leading edge genes", "Pathway size"
                 ],
                 dropna=False
             )["Parent pathway"]
@@ -167,7 +167,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
             s = s.replace({'': None, 'nan': None})
             df_[col_name] = pd.to_numeric(s, errors='coerce').fillna(0).astype(int)
 
-    safe_int_col(res_df, "Input gene number")
+    safe_int_col(res_df, "Number of input genes")
     safe_int_col(res_df, "Pathway size")
 
     return res_df
