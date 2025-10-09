@@ -3,6 +3,7 @@ from app.services.gsea import run_gsea, available_gmt_files
 import tempfile
 import pandas as pd
 import os
+import numpy as np
 
 router = APIRouter()
 
@@ -42,5 +43,9 @@ async def gsea_endpoint(
     finally:
         # Clean up temp file
         os.unlink(tsv_path)
+
+    # # Replace NaN/Inf with JSON-safe values
+    # res_df = res_df.replace([np.inf, -np.inf], None)
+    # res_df = res_df.where(pd.notna(res_df), None)
 
     return res_df.to_dict(orient="records")
