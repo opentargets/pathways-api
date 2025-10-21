@@ -1,4 +1,14 @@
-const API_BASE_URL = 'http://localhost:8000';
+const getApiBaseUrl = () => {
+  // For production (when served from the same domain)
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return ''; // Use relative URLs in production
+  }
+  
+  // For local development
+  return import.meta.env.VITE_API_URL || 'http://localhost:8080';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export type Pathway = Record<string, any>;
 

@@ -27,12 +27,19 @@ COPY app/ ./app/
 # Copy built frontend from GitHub Actions build
 COPY ui/dist ./ui/dist
 
-# Expose port
-EXPOSE 8000
+# Create startup script that properly handles runtime PORT variable
+RUN echo '#!/bin/sh\n\
+PORT="${PORT:-8080}"\n\
+echo "Starting server on port $PORT"\n\
+exec /app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port "$PORT"' > /app/start.sh && \
+  chmod +x /app/start.sh
+
+# Expose port 8080 (Cloud Run default)
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8000/ || exit 1
+  CMD curl -f http://localhost:${PORT:-8080}/ || exit 1
 
 # Run the application
-CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/start.sh"]
