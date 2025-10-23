@@ -1,18 +1,20 @@
-import os
-import pandas as pd
-import blitzgsea as blitz
 from pathlib import Path
+import blitzgsea as blitz
+import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parents[1]  # app/
 DATA_DIR = BASE_DIR / "data"
 GMT_DIR = DATA_DIR / "gmt"
+MIN_GENE_COL_IDX = 2
+DEFAULT_TEST_INPUT = DATA_DIR / "test_input_gsea/OT-EFO_0003767-associated-targets-13_08_2025-v25_06.tsv"
 
 def load_custom_gmt(path):
-    with open(path, 'r') as f:
+    p = Path(path)
+    with p.open("r") as f:
         return {
-            parts[0]: parts[2:]
+            parts[0]: parts[MIN_GENE_COL_IDX:]
             for line in f
-            if (parts := line.strip().split('\t')) and len(parts) > 2
+            if (parts := line.strip().split("\t")) and len(parts) > MIN_GENE_COL_IDX
         }
 
 def available_gmt_files():
@@ -34,7 +36,7 @@ def available_gmt_files():
             hierarchy_file = txt_files[0] if txt_files else None
             libraries[f"{folder.name}/{gmt_file.stem}"] = {
                 "gmt": gmt_file,
-                "hierarchy": hierarchy_file
+                "hierarchy": hierarchy_file,
             }
     return libraries
 
@@ -48,7 +50,8 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
 
     gmt_files = available_gmt_files()
     if not gmt_name or gmt_name not in gmt_files:
-        raise ValueError(f"Invalid gmt_name. Choose from: {list(gmt_files.keys())}")
+        msg = "Invalid gmt_name. Choose from: " + str(list(gmt_files.keys()))
+        raise ValueError(msg)
 
     gmt_file = gmt_files[gmt_name]["gmt"]
     hierarchy_file = gmt_files[gmt_name]["hierarchy"]
@@ -58,7 +61,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
 
     # --- Check if GMT file contains IDs in braces {ID} ---
     contains_braces = False
-    with open(gmt_file, 'r') as f:
+    with gmt_file.open("r") as f:
         for line in f:
             if "{" in line and "}" in line:
                 contains_braces = True
@@ -66,12 +69,12 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
 
     # Build ID -> genes mapping from the GMT file
     id_to_genes = {}
-    with open(gmt_file, 'r') as f:
+    with gmt_file.open("r") as f:
         for line in f:
             parts = line.rstrip("\n").split("\t")
-            if len(parts) > 2:
+            if len(parts) > MIN_GENE_COL_IDX:
                 term = parts[0]
-                genes = parts[2:]
+                genes = parts[MIN_GENE_COL_IDX:]
                 if contains_braces and "{" in term and "}" in term:
                     start = term.find("{") + 1
                     end = term.find("}", start)
@@ -85,14 +88,41 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     # --- Load input file safely ---
     df = pd.read_csv(input_tsv, sep="\t")
 
+    # Allow unnamed columns (0,1) and rename to expected headers
     if set(df.columns) == set(range(len(df.columns))):
         df = df.rename(columns={0: "symbol", 1: "globalScore"})
 
     if not {"symbol", "globalScore"}.issubset(df.columns):
-        raise ValueError("Input file must contain 'symbol' and 'globalScore' columns.")
+        msg = "Input file must contain 'symbol' and 'globalScore' columns."
+        raise ValueError(msg)
 
+    # Keep only required columns
     df = df[["symbol", "globalScore"]].copy()
+
+    # --- Merge background genes for the selected library (no duplicates) ---
+    # Prefer pre-generated background file next to the GMT; fallback to union from GMT
+    background_path = gmt_file.with_name(f"{gmt_file.stem}_background")
+    if background_path.exists():
+        with background_path.open("r") as f:
+            background_genes = {line.strip() for line in f if line.strip()}
+    else:
+        # Fallback: union of all genes from the GMT mapping
+        background_genes = set()
+        for genes in library_sets.values():
+            background_genes.update(g for g in genes if g)
+
+    existing_genes = set(df["symbol"].astype(str))
+    missing_genes = sorted(background_genes - existing_genes)
+    if missing_genes:
+        background_df = pd.DataFrame({
+            "symbol": missing_genes,
+            "globalScore": 0,
+        })
+        df = pd.concat([df, background_df], ignore_index=True)
+
+    # Sort by score desc and drop duplicate symbols keeping highest score (originals win over zeros)
     df = df.sort_values("globalScore", ascending=False)
+    df = df.drop_duplicates(subset=["symbol"], keep="first")
 
     res_df = blitz.gsea(df, library_sets, processes=processes).reset_index(names="Term")
 
@@ -138,7 +168,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     if hierarchy_file and hierarchy_file.exists():
         hierarchy_df = pd.read_csv(
             hierarchy_file, sep="\t", header=None,
-            names=["Parent pathway", "Child pathway"]
+            names=["Parent pathway", "Child pathway"],
         )
         res_df = res_df.merge(
             hierarchy_df, left_on="ID", right_on="Child pathway", how="left"
@@ -147,9 +177,9 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
             res_df.groupby(
                 [
                     "ID", "Link", "Pathway", "ES", "NES", "FDR", "p-value",
-                    "Sidak's p-value", "Number of input genes", "Leading edge genes", "Pathway size"
+                    "Sidak's p-value", "Number of input genes", "Leading edge genes", "Pathway size",
                 ],
-                dropna=False
+                dropna=False,
             )["Parent pathway"]
             .apply(lambda x: ",".join(sorted(set(x.dropna()))))
             .reset_index()
@@ -164,8 +194,8 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
         """
         if col_name in df_.columns:
             s = df_[col_name].astype(str).str.replace(",", "", regex=False).str.strip()
-            s = s.replace({'': None, 'nan': None})
-            df_[col_name] = pd.to_numeric(s, errors='coerce').fillna(0).astype(int)
+            s = s.replace({"": None, "nan": None})
+            df_[col_name] = pd.to_numeric(s, errors="coerce").fillna(0).astype(int)
 
     safe_int_col(res_df, "Number of input genes")
     safe_int_col(res_df, "Pathway size")
