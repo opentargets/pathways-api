@@ -9,11 +9,12 @@ import Pathways from "./pages/Pathways";
 import { theme } from "./theme";
 
 function App() {
+    const basename = import.meta.env.DEV ? "/" : "/ui";
 	return (
 		<ApolloProvider client={client}>
 			<ThemeProvider theme={theme}>
 				<CssBaseline />
-				<Router basename="/ui">
+				<Router basename={basename}>
 					<div
 						style={{
 							minHeight: "100vh",
