@@ -1,12 +1,34 @@
 from pathlib import Path
+import numpy as np
 import blitzgsea as blitz
+import gcsfs
 import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parents[1]  # app/
 DATA_DIR = BASE_DIR / "data"
 GMT_DIR = DATA_DIR / "gmt"
 MIN_GENE_COL_IDX = 2
-DEFAULT_TEST_INPUT = DATA_DIR / "test_input_gsea/OT-EFO_0003767-associated-targets-13_08_2025-v25_06.tsv"
+
+def get_approved_symbols_from_gcs():
+    """
+    Read approvedSymbol column from Open Targets target parquet files in GCS using gcsfs.
+    Returns a set of approved gene symbols.
+    """
+    # Initialize GCS filesystem
+    fs = gcsfs.GCSFileSystem()
+    
+    # Define the GCS path to the target directory
+    gcs_path = "open-targets-pre-data-releases/25.09/output/target/"
+    
+    # Read all parquet files in the directory as a single dataset
+    # This is much more efficient than downloading individual files
+    df = pd.read_parquet(gcs_path, filesystem=fs, columns=["approvedSymbol"])
+    
+    # Extract unique approved symbols (excluding NaN values)
+    approved_symbols = set(df["approvedSymbol"].dropna().astype(str))
+
+    
+    return approved_symbols
 
 def load_custom_gmt(path):
     p = Path(path)
@@ -46,7 +68,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     Pathway size is computed from the GMT (total genes in the pathway).
     Ensure 'Number of input genes' and 'Pathway size' are integers (no .0).
     """
-    input_tsv = Path(input_tsv) if input_tsv else DEFAULT_TEST_INPUT
+    input_tsv = Path(input_tsv)
 
     gmt_files = available_gmt_files()
     if not gmt_name or gmt_name not in gmt_files:
@@ -120,11 +142,23 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
         })
         df = pd.concat([df, background_df], ignore_index=True)
 
+    # --- Filter genes to only include those in Open Targets approved symbols ---
+    approved_symbols = get_approved_symbols_from_gcs()
+    df = df[df["symbol"].astype(str).isin(approved_symbols)].copy()
+
+    # # After gene filtering
+    # print(f"Genes after filtering: {len(df)}")
+    # print(f"Sample of filtered genes: {df['symbol'].head()}")
+
     # Sort by score desc and drop duplicate symbols keeping highest score (originals win over zeros)
     df = df.sort_values("globalScore", ascending=False)
     df = df.drop_duplicates(subset=["symbol"], keep="first")
 
     res_df = blitz.gsea(df, library_sets, processes=processes).reset_index(names="Term")
+
+    # # After GSEA calculation
+    # print(f"GSEA results shape: {res_df.shape}")
+    # print(f"Columns with NaN: {res_df.isnull().sum()}")
 
     # --- Extract IDs and clean terms ---
     if contains_braces:
@@ -199,6 +233,25 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
 
     safe_int_col(res_df, "Number of input genes")
     safe_int_col(res_df, "Pathway size")
+
+    # Handle NaN values for JSON serialization
+    res_df = res_df.replace([np.inf, -np.inf], np.nan)
+    res_df = res_df.fillna({
+        'ES': 0.0,
+        'NES': 0.0,
+        'FDR': 1.0,
+        'p-value': 1.0,
+        "Sidak's p-value": 1.0,
+        'Number of input genes': 0,
+        'Pathway size': 0
+    })
+
+    # Ensure string columns are properly handled
+    string_columns = ['Leading edge genes', 'Parent pathway']
+    for col in string_columns:
+        if col in res_df.columns:
+            res_df[col] = res_df[col].astype(str).replace('nan', '')
+
 
     return res_df
 

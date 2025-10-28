@@ -26,7 +26,10 @@ dependencies = [
     "pandas>=2.2.3",
     "umap>=0.1.1",
     "hdbscan>=0.8.40",
-    "numpy>=1.26.4"
+    "numpy>=1.26.4",
+    "google-cloud-storage>=3.4.1",
+    "pyarrow>=22.0.0",
+    "gcsfs>=2025.9.0",
 ]
 
 [build-system]
