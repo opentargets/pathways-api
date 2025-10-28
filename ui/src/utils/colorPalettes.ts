@@ -5,13 +5,7 @@
  * Used in flame graphs and other visualizations that need to show prioritization
  */
 export const PRIORITISATION_COLORS = [
-  "#a01813", // -1 (red)
-  "#bc3a19",
-  "#d65a1f",
-  "#e08145",
-  "#e3a772",
-  "#e6ca9c",
-  "#eceada", // 0 (neutral)
+  "#eceada", // 0 (neutral beige)
   "#c5d2c1",
   "#9ebaa8",
   "#78a290",
