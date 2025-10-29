@@ -7,13 +7,15 @@ BASE_DIR = Path(__file__).resolve().parents[1]  # app/
 DATA_DIR = BASE_DIR / "data"
 GMT_DIR = DATA_DIR / "gmt"
 
+
 def load_custom_gmt(path):
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         return {
             parts[0]: parts[2:]
             for line in f
-            if (parts := line.strip().split('\t')) and len(parts) > 2
+            if (parts := line.strip().split("\t")) and len(parts) > 2
         }
+
 
 def available_gmt_files():
     """
@@ -34,9 +36,10 @@ def available_gmt_files():
             hierarchy_file = txt_files[0] if txt_files else None
             libraries[f"{folder.name}/{gmt_file.stem}"] = {
                 "gmt": gmt_file,
-                "hierarchy": hierarchy_file
+                "hierarchy": hierarchy_file,
             }
     return libraries
+
 
 def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     """
@@ -58,7 +61,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
 
     # --- Check if GMT file contains IDs in braces {ID} ---
     contains_braces = False
-    with open(gmt_file, 'r') as f:
+    with open(gmt_file, "r") as f:
         for line in f:
             if "{" in line and "}" in line:
                 contains_braces = True
@@ -66,7 +69,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
 
     # Build ID -> genes mapping from the GMT file
     id_to_genes = {}
-    with open(gmt_file, 'r') as f:
+    with open(gmt_file, "r") as f:
         for line in f:
             parts = line.rstrip("\n").split("\t")
             if len(parts) > 2:
@@ -100,7 +103,9 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     if contains_braces:
         term_series = res_df["Term"]
         res_df["ID"] = term_series.str.extract(r"\{([^}]+)\}", expand=False).fillna("")
-        res_df["Term"] = term_series.str.replace(r"\s*\{[^}]+\}", "", regex=True).str.strip()
+        res_df["Term"] = term_series.str.replace(
+            r"\s*\{[^}]+\}", "", regex=True
+        ).str.strip()
     else:
         res_df["ID"] = res_df["Term"]  # use Term as ID directly
 
@@ -137,8 +142,10 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     # --- Load hierarchy mapping if available ---
     if hierarchy_file and hierarchy_file.exists():
         hierarchy_df = pd.read_csv(
-            hierarchy_file, sep="\t", header=None,
-            names=["Parent pathway", "Child pathway"]
+            hierarchy_file,
+            sep="\t",
+            header=None,
+            names=["Parent pathway", "Child pathway"],
         )
         res_df = res_df.merge(
             hierarchy_df, left_on="ID", right_on="Child pathway", how="left"
@@ -146,10 +153,19 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
         res_df = (
             res_df.groupby(
                 [
-                    "ID", "Link", "Pathway", "ES", "NES", "FDR", "p-value",
-                    "Sidak's p-value", "Input gene number", "Leading edge genes", "Pathway size"
+                    "ID",
+                    "Link",
+                    "Pathway",
+                    "ES",
+                    "NES",
+                    "FDR",
+                    "p-value",
+                    "Sidak's p-value",
+                    "Input gene number",
+                    "Leading edge genes",
+                    "Pathway size",
                 ],
-                dropna=False
+                dropna=False,
             )["Parent pathway"]
             .apply(lambda x: ",".join(sorted(set(x.dropna()))))
             .reset_index()
@@ -164,11 +180,10 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
         """
         if col_name in df_.columns:
             s = df_[col_name].astype(str).str.replace(",", "", regex=False).str.strip()
-            s = s.replace({'': None, 'nan': None})
-            df_[col_name] = pd.to_numeric(s, errors='coerce').fillna(0).astype(int)
+            s = s.replace({"": None, "nan": None})
+            df_[col_name] = pd.to_numeric(s, errors="coerce").fillna(0).astype(int)
 
     safe_int_col(res_df, "Input gene number")
     safe_int_col(res_df, "Pathway size")
 
     return res_df
-

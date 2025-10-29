@@ -3,10 +3,12 @@ import { Box, Tabs, Tab, Typography, Button } from "@mui/material";
 import {
 	DonutLarge as SunburstIcon,
 	ShowChart as BarChartIcon,
+	DonutLarge as D3SunburstIcon,
 } from "@mui/icons-material";
 import type { Pathway } from "../../lib/api";
 import FlameGraphHeader from "./FlameGraphHeader";
 import SunburstChart from "./SunburstChart";
+import D3SunburstChart from "./D3SunburstChart";
 import HorizontalFlameChart from "./HorizontalFlameChart";
 import FlameGraphSettings from "./FlameGraphSettings";
 import PathwayFilter, { type PathwayFilters } from "./PathwayFilter";
@@ -233,7 +235,12 @@ const PathwaysFlameGraph: React.FC<PathwaysFlameGraphProps> = ({
 						>
 							<Tab
 								icon={<SunburstIcon />}
-								label="Sunburst"
+								label="Plotly Sunburst"
+								iconPosition="start"
+							/>
+							<Tab
+								icon={<D3SunburstIcon />}
+								label="D3 Sunburst"
 								iconPosition="start"
 							/>
 							<Tab
@@ -255,7 +262,7 @@ const PathwaysFlameGraph: React.FC<PathwaysFlameGraphProps> = ({
 							minHeight: "500px",
 						}}
 					>
-						{/* Sunburst Chart */}
+						{/* Plotly Sunburst Chart */}
 						{activeTab === 0 && (
 							<Box sx={{ flex: 1, minHeight: "500px" }}>
 								<SunburstChart
@@ -267,8 +274,20 @@ const PathwaysFlameGraph: React.FC<PathwaysFlameGraphProps> = ({
 							</Box>
 						)}
 
-						{/* Horizontal Flame Graph Chart */}
+						{/* D3 Sunburst Chart */}
 						{activeTab === 1 && (
+							<Box sx={{ flex: 1, minHeight: "500px" }}>
+								<D3SunburstChart
+									pathways={filteredPathways}
+									maxPathways={settings.maxPathways}
+									orientation={settings.orientation}
+									branchvalues={settings.branchvalues}
+								/>
+							</Box>
+						)}
+
+						{/* Horizontal Flame Graph Chart */}
+						{activeTab === 2 && (
 							<Box sx={{ flex: 1, minHeight: "500px" }}>
 								<HorizontalFlameChart
 									pathways={filteredPathways}
