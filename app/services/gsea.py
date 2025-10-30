@@ -41,14 +41,23 @@ def available_gmt_files():
     return libraries
 
 
-def run_gsea(input_tsv=None, gmt_name=None, processes=4):
+def run_gsea_from_dataframe(
+    df: pd.DataFrame, gmt_name: str, processes: int = 4
+) -> pd.DataFrame:
     """
-    Run GSEA using a chosen GMT library and its hierarchy (if present).
-    Pathway size is computed from the GMT (total genes in the pathway).
-    Ensure 'Number of input genes' and 'Pathway size' are integers (no .0).
-    """
-    input_tsv = Path(input_tsv) if input_tsv else DEFAULT_TEST_INPUT
+    Run GSEA using a DataFrame directly (no file required).
 
+    Args:
+        df: DataFrame with 'symbol' and 'globalScore' columns, already validated
+        gmt_name: Name of GMT library to use
+        processes: Number of CPU processes
+
+    Returns:
+        DataFrame with GSEA results
+
+    Raises:
+        ValueError: If gmt_name is invalid or DataFrame is missing required columns
+    """
     gmt_files = available_gmt_files()
     if not gmt_name or gmt_name not in gmt_files:
         raise ValueError(f"Invalid gmt_name. Choose from: {list(gmt_files.keys())}")
@@ -85,14 +94,9 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
                     # if no braces, map Term itself as ID
                     id_to_genes[term] = genes
 
-    # --- Load input file safely ---
-    df = pd.read_csv(input_tsv, sep="\t")
-
-    if set(df.columns) == set(range(len(df.columns))):
-        df = df.rename(columns={0: "symbol", 1: "globalScore"})
-
+    # Ensure DataFrame is properly formatted and sorted
     if not {"symbol", "globalScore"}.issubset(df.columns):
-        raise ValueError("Input file must contain 'symbol' and 'globalScore' columns.")
+        raise ValueError("DataFrame must contain 'symbol' and 'globalScore' columns.")
 
     df = df[["symbol", "globalScore"]].copy()
     df = df.sort_values("globalScore", ascending=False)
@@ -187,3 +191,34 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     safe_int_col(res_df, "Pathway size")
 
     return res_df
+
+
+def run_gsea(input_tsv=None, gmt_name=None, processes=4):
+    """
+    Run GSEA from a TSV file path (backward compatible).
+
+    Args:
+        input_tsv: Path to TSV file with 'symbol' and 'globalScore' columns
+        gmt_name: Name of GMT library to use
+        processes: Number of CPU processes
+
+    Returns:
+        DataFrame with GSEA results
+
+    Raises:
+        ValueError: If gmt_name is invalid or file is missing required columns
+    """
+    if not input_tsv:
+        raise ValueError("input_tsv parameter is required")
+
+    input_tsv = Path(input_tsv)
+
+    # Load input file
+    df = pd.read_csv(input_tsv, sep="\t")
+
+    # Handle unnamed columns (legacy support)
+    if set(df.columns) == set(range(len(df.columns))):
+        df = df.rename(columns={0: "symbol", 1: "globalScore"})
+
+    # Validate and run GSEA using the DataFrame-based function
+    return run_gsea_from_dataframe(df, gmt_name, processes)
