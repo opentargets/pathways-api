@@ -35,7 +35,11 @@ async def run_gsea_endpoint(
         with tmp_path.open("wb") as f:
             f.write(await file.read())
 
-        res_df = run_gsea(input_tsv=tmp_path, gmt_name=gmt_name, processes=processes)
+        res_df, _missing_stats = run_gsea(
+            input_tsv=tmp_path,
+            gmt_name=gmt_name,
+            processes=processes,
+        )
 
         # Return as JSON records
         return res_df.to_dict(orient="records")
