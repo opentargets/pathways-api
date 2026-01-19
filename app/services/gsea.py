@@ -133,6 +133,21 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
         for genes in library_sets.values():
             background_genes.update(g for g in genes if g)
 
+    # --- Calculate missing targets from input list vs library background ---
+    input_symbols = df["symbol"].astype(str).str.strip()
+    input_symbols = input_symbols[input_symbols != ""]
+    input_unique = set(input_symbols)
+    total_input = len(input_unique)
+    missing_from_library = sorted(input_unique - background_genes)
+    missing_count = len(missing_from_library)
+    missing_percent = round((missing_count / total_input * 100) if total_input else 0.0, 2)
+    missing_stats = {
+        "library": gmt_name,
+        "missing_count": missing_count,
+        "total_input": total_input,
+        "missing_percent": missing_percent,
+    }
+
     existing_genes = set(df["symbol"].astype(str))
     missing_genes = sorted(background_genes - existing_genes)
     if missing_genes:
@@ -253,5 +268,5 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
             res_df[col] = res_df[col].astype(str).replace('nan', '')
 
 
-    return res_df
+    return res_df, missing_stats
 
