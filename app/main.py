@@ -44,31 +44,9 @@ else:
     )
 
 # Include routers
-try:
-    logger.info("Registering GSEA router...")
-    app.include_router(gsea.router, prefix="/api", tags=["GSEA"])
-    logger.info(f"GSEA router registered successfully with {len(gsea.router.routes)} routes")
-    for route in gsea.router.routes:
-        logger.info(f"  - {route.methods} {route.path}")
-except Exception as e:
-    logger.error(f"Failed to register GSEA router: {e}", exc_info=True)
-    raise
-
-try:
-    logger.info("Registering pathways router...")
-    app.include_router(pathways_router)
-    logger.info(f"Pathways router registered successfully")
-except Exception as e:
-    logger.error(f"Failed to register pathways router: {e}", exc_info=True)
-    raise
-
-try:
-    logger.info("Registering UMAP router...")
-    app.include_router(router, prefix="/umap")
-    logger.info(f"UMAP router registered successfully")
-except Exception as e:
-    logger.error(f"Failed to register UMAP router: {e}", exc_info=True)
-    raise
+app.include_router(gsea.router, prefix="/api", tags=["GSEA"])
+app.include_router(pathways_router)
+app.include_router(router, prefix="/umap")
 
 
 # Mount static files for the React app
