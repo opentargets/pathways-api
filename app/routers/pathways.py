@@ -1,6 +1,5 @@
-from typing import Any, Optional
-from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
-import pandas as pd
+from typing import Any
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pathlib import Path
 
 from app.services.gsea import available_gmt_files, run_gsea
@@ -29,9 +28,9 @@ async def run_gsea_endpoint(
     """
     Run GSEA on an uploaded input file using a chosen GMT library.
     """
+    tmp_path = Path(f"/tmp/{file.filename}")
     try:
         # Save uploaded file to a temporary path
-        tmp_path = Path(f"/tmp/{file.filename}")
         with tmp_path.open("wb") as f:
             f.write(await file.read())
 
@@ -48,3 +47,7 @@ async def run_gsea_endpoint(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Clean up temp file
+        if tmp_path.exists():
+            tmp_path.unlink()

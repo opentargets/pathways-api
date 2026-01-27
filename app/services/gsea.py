@@ -160,19 +160,11 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     approved_symbols = get_approved_symbols_from_gcs()
     df = df[df["symbol"].astype(str).isin(approved_symbols)].copy()
 
-    # # After gene filtering
-    # print(f"Genes after filtering: {len(df)}")
-    # print(f"Sample of filtered genes: {df['symbol'].head()}")
-
     # Sort by score desc and drop duplicate symbols keeping highest score (originals win over zeros)
     df = df.sort_values("globalScore", ascending=False)
     df = df.drop_duplicates(subset=["symbol"], keep="first")
 
     res_df = blitz.gsea(df, library_sets, processes=processes).reset_index(names="Term")
-
-    # # After GSEA calculation
-    # print(f"GSEA results shape: {res_df.shape}")
-    # print(f"Columns with NaN: {res_df.isnull().sum()}")
 
     # --- Extract IDs and clean terms ---
     if contains_braces:
