@@ -61,5 +61,5 @@ async def gsea_endpoint(
 
     return {
         "results": res_df.to_dict(orient="records"),
-        "missing_targets": missing_stats,
+        "input_overlap": missing_stats,
     }

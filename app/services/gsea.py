@@ -138,14 +138,13 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     input_symbols = input_symbols[input_symbols != ""]
     input_unique = set(input_symbols)
     total_input = len(input_unique)
-    missing_from_library = sorted(input_unique - background_genes)
-    missing_count = len(missing_from_library)
-    missing_percent = round((missing_count / total_input * 100) if total_input else 0.0, 2)
-    missing_stats = {
+    overlap_count = len(input_unique & background_genes)
+    overlap_percent = round((overlap_count / total_input * 100) if total_input else 0.0, 2)
+    overlap_stats = {
         "library": gmt_name,
-        "missing_count": missing_count,
+        "used_count": overlap_count,
         "total_input": total_input,
-        "missing_percent": missing_percent,
+        "used_percent": overlap_percent,
     }
 
     existing_genes = set(df["symbol"].astype(str))
@@ -268,5 +267,5 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
             res_df[col] = res_df[col].astype(str).replace('nan', '')
 
 
-    return res_df, missing_stats
+    return res_df, overlap_stats
 
