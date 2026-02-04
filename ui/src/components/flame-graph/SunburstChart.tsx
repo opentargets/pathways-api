@@ -65,7 +65,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 		nodes.ids.push("root");
 		nodes.labels.push("All Pathways");
 		nodes.parents.push("");
-		nodes.values.push(limitedPathways.length);
+		nodes.values.push(1);
 		nodes.customdata.push({ type: "root" });
 		nodes.marker.colors.push(ROOT_NODE_COLORS.primary);
 
@@ -83,6 +83,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 		// Collect all NES values first
 		limitedPathways.forEach(collectNESValues);
 
+		// let rootNodeWidth = 0;
 		// Add root pathways (those without parents)
 		rootPathways.forEach((pathway, index) => {
 			const pathwayId = pathway["ID"] || pathway["id"] || `root-${index}`;
@@ -98,9 +99,10 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 					: 0;
 
 			// Calculate width based on significance (more significant = wider)
-			const significance = 1 / (pValue || 1);
-			const width = Math.max(1, Math.log(significance) * 5);
-
+			// const significance = 1 / (pValue || 1);
+			const width = 1; //Math.max(1, Math.log(significance) * 5);
+			// rootNodeWidth += width;
+			
 			nodes.ids.push(pathwayId);
 			nodes.labels.push(
 				pathway["Pathway"] || pathway["pathway"] || `Pathway ${index + 1}`,
@@ -129,6 +131,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 			);
 		});
 
+		// nodes.values[0] = 1;
+
 		// Add child pathways
 		const processedIds = new Set<string>();
 
@@ -154,8 +158,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 						: 0;
 
 				// Calculate width based on significance
-				const significance = 1 / (pValue || 1);
-				const width = Math.max(1, Math.log(significance) * 5);
+				// const significance = 1 / (pValue || 1);
+				const width = 1; //Math.max(1, Math.log(significance) * 5);
 
 				nodes.ids.push(childId);
 				nodes.labels.push(pathway["Pathway"] || pathway["pathway"] || childId);
