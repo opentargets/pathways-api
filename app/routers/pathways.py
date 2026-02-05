@@ -8,6 +8,17 @@ from app.services.gsea import available_gmt_files, run_gsea
 router = APIRouter(prefix="/pathways", tags=["pathways"])
 
 
+@router.get("")
+async def pathways_root():
+    """Root endpoint for pathways router."""
+    return {
+        "endpoints": [
+            {"method": "GET", "path": "/pathways/available", "description": "List available GMT libraries"},
+            {"method": "POST", "path": "/pathways/gsea", "description": "Run GSEA analysis"},
+        ]
+    }
+
+
 @router.get("/available", response_model=list[str])
 async def list_libraries():
     """

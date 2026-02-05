@@ -31,6 +31,31 @@ interface SunburstChartProps {
 	branchvalues: "total" | "remainder";
 }
 
+// Helper function to wrap text after 20 characters, breaking at word boundaries
+const wrapText = (text: string, maxLength: number = 20): string => {
+	if (text.length <= maxLength) return text;
+	
+	const words = text.split(/\s+/);
+	const lines: string[] = [];
+	let currentLine = "";
+	
+	words.forEach((word) => {
+		// If adding this word would exceed maxLength, start a new line
+		if (currentLine.length + word.length + 1 > maxLength && currentLine.length > 0) {
+			lines.push(currentLine);
+			currentLine = word;
+		} else {
+			currentLine = currentLine ? `${currentLine} ${word}` : word;
+		}
+	});
+	
+	if (currentLine) {
+		lines.push(currentLine);
+	}
+	
+	return lines.join("\n");
+};
+
 const SunburstChart: React.FC<SunburstChartProps> = ({
 	pathways,
 	maxPathways,
@@ -46,7 +71,59 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
 		const limitedPathways = pathways.slice(0, maxPathways);
 		const { pathwayMap, childrenMap } = buildPathwayHierarchy(limitedPathways);
-		const rootPathways = getEffectiveRootPathways(limitedPathways);
+		let rootPathways = getEffectiveRootPathways(limitedPathways);
+
+		// Separate root pathways into those with children and those without (leaf pathways)
+		const rootPathwaysWithChildren: Pathway[] = [];
+		const rootPathwaysWithoutChildren: Pathway[] = [];
+
+		rootPathways.forEach((pathway) => {
+			const pathwayId = pathway["ID"] || pathway["id"] || "";
+			const hasChildren = childrenMap.has(pathwayId) && (childrenMap.get(pathwayId)?.length || 0) > 0;
+			
+			if (hasChildren) {
+				rootPathwaysWithChildren.push(pathway);
+			} else {
+				rootPathwaysWithoutChildren.push(pathway);
+			}
+		});
+
+		// Create "Others" pathway if there are leaf pathways to merge
+		if (rootPathwaysWithoutChildren.length > 0) {
+			// Calculate average NES and FDR for the merged pathways
+			let totalNES = 0;
+			let totalFDR = 0;
+			let nesCount = 0;
+			let fdrCount = 0;
+
+			rootPathwaysWithoutChildren.forEach((pathway) => {
+				const nes = pathway["NES"] || pathway["nes"];
+				const fdr = pathway["FDR"] || pathway["fdr"];
+
+				if (nes !== undefined && nes !== null) {
+					totalNES += nes;
+					nesCount++;
+				}
+				if (fdr !== undefined && fdr !== null) {
+					totalFDR += fdr;
+					fdrCount++;
+				}
+			});
+
+			const othersPathway: Pathway = {
+				ID: "others",
+				id: "others",
+				Pathway: "Others",
+				pathway: "Others",
+				NES: nesCount > 0 ? totalNES / nesCount : 0,
+				nes: nesCount > 0 ? totalNES / nesCount : 0,
+				FDR: fdrCount > 0 ? totalFDR / fdrCount : null,
+				fdr: fdrCount > 0 ? totalFDR / fdrCount : null,
+			};
+
+			// Replace root pathways: keep those with children, add "Others"
+			rootPathways = [...rootPathwaysWithChildren, othersPathway];
+		}
 
 		const nodes: FlameGraphNode = {
 			ids: [],
@@ -63,10 +140,10 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
 		// Add root node
 		nodes.ids.push("root");
-		nodes.labels.push("All Pathways");
+		nodes.labels.push("Reactome\npathways");
 		nodes.parents.push("");
 		nodes.values.push(1);
-		nodes.customdata.push({ type: "root" });
+		nodes.customdata.push([null, null]); // [nes, fdr] for root node
 		nodes.marker.colors.push(ROOT_NODE_COLORS.primary);
 
 		// Collect all NES values for color scaling
@@ -82,6 +159,12 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
 		// Collect all NES values first
 		limitedPathways.forEach(collectNESValues);
+		
+		// If "Others" pathway exists, add its NES to the collection for color scaling
+		const othersPathway = rootPathways.find(p => (p["ID"] || p["id"]) === "others");
+		if (othersPathway) {
+			collectNESValues(othersPathway);
+		}
 
 		// let rootNodeWidth = 0;
 		// Add root pathways (those without parents)
@@ -104,24 +187,15 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 			// rootNodeWidth += width;
 			
 			nodes.ids.push(pathwayId);
-			nodes.labels.push(
-				pathway["Pathway"] || pathway["pathway"] || `Pathway ${index + 1}`,
-			);
+			const pathwayName = pathway["Pathway"] || pathway["pathway"] || `Pathway ${index + 1}`;
+			nodes.labels.push(wrapText(pathwayName, 20));
 			nodes.parents.push("root");
 			nodes.values.push(width);
-			nodes.customdata.push({
-				type: "pathway",
-				pathway,
-				pValue,
-				fdr,
-				nes,
-				geneCount,
-				genes: Array.isArray(genes)
-					? genes
-					: typeof genes === "string"
-						? genes.split(",").map((g: string) => g.trim())
-						: [],
-			});
+			// Store as [nes, fdr] for hover template access
+			nodes.customdata.push([
+				nes !== undefined && nes !== null ? nes : null,
+				fdr !== undefined && fdr !== null ? fdr : null,
+			]);
 
 			// Color based on NES using prioritization colors
 			const maxNES = Math.max(...allNESValues);
@@ -162,22 +236,15 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 				const width = 1; //Math.max(1, Math.log(significance) * 5);
 
 				nodes.ids.push(childId);
-				nodes.labels.push(pathway["Pathway"] || pathway["pathway"] || childId);
+				const childPathwayName = pathway["Pathway"] || pathway["pathway"] || childId;
+				nodes.labels.push(wrapText(childPathwayName, 20));
 				nodes.parents.push(parentPath);
 				nodes.values.push(width);
-				nodes.customdata.push({
-					type: "pathway",
-					pathway,
-					pValue,
-					fdr,
-					nes,
-					geneCount,
-					genes: Array.isArray(genes)
-						? genes
-						: typeof genes === "string"
-							? genes.split(",").map((g: string) => g.trim())
-							: [],
-				});
+				// Store as [nes, fdr] for hover template access
+				nodes.customdata.push([
+					nes !== undefined && nes !== null ? nes : null,
+					fdr !== undefined && fdr !== null ? fdr : null,
+				]);
 
 				// Color based on NES using prioritization colors
 				const maxNES = Math.max(...allNESValues);
@@ -199,7 +266,11 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
 		// Set hover template
 		nodes.hovertemplate =
-			"<b>%{label}</b><br>" + "Width: %{value}<br>" + "<extra></extra>";
+			"<b>%{label}</b><br>" +
+			"Width: %{value}<br>" +
+			"NES: %{customdata[0]:.3f}<br>" +
+			"FDR: %{customdata[1]:.4f}<br>" +
+			"<extra></extra>";
 
 		return nodes;
 	}, [pathways, maxPathways]);
@@ -216,6 +287,13 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 				branchvalues,
 				maxdepth: 10, // Allow deeper levels
 			},
+			font: {
+				family: "Helvetica-Bold, Helvetica, Arial Black, Arial, sans-serif",
+				size: 14,
+				color: "#1A1A1A",
+			},
+			plot_bgcolor: "rgba(0,0,0,0)",
+			paper_bgcolor: "rgba(0,0,0,0)",
 		}),
 		[branchvalues],
 	);
@@ -227,6 +305,13 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 			modeBarButtonsToRemove: ["pan2d", "lasso2d", "select2d"],
 			displaylogo: false,
 			responsive: true,
+			toImageButtonOptions: {
+				format: "png",
+				filename: "sunburst-chart",
+				height: undefined,
+				width: undefined,
+				scale: 4.167, // 400 DPI (400/96 = 4.167, where 96 is default browser DPI)
+			},
 		}),
 		[],
 	);
@@ -241,12 +326,54 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 					type: "sunburst",
 					...flameGraphData,
 					orientation,
+					textfont: {
+						size: 16,
+						family: "Helvetica-Bold, Helvetica, Arial Black, Arial, sans-serif",
+						color: "#1A1A1A",
+					},
+					insidetextorientation: "radial", // Options: "radial" | "horizontal" | "tangential" | "auto"
+					textinfo: "label",
+					textposition: "inside",
 				},
 			];
 
 			Plotly.newPlot(plotElement, plotData, layout, config).then(
 				(plotDiv: any) => {
 					plotRef.current = plotDiv;
+
+					// Apply custom CSS to make text bold and fill branch space
+					// Use a unique ID to avoid duplicate styles
+					if (!document.getElementById("sunburst-text-styles")) {
+						const style = document.createElement("style");
+						style.id = "sunburst-text-styles";
+						style.textContent = `
+							.sunburst-plot text {
+								font-weight: bold !important;
+								font-size: 14px !important;
+								fill: #1A1A1A !important;
+								text-anchor: middle !important;
+								dominant-baseline: middle !important;
+								white-space: pre-line !important;
+							}
+							.sunburst-plot .slice text,
+							.sunburst-plot .sunburstlayer text {
+								font-weight: bold !important;
+								font-size: 14px !important;
+								fill: #1A1A1A !important;
+								white-space: pre-line !important;
+							}
+							.sunburst-plot text tspan {
+								font-weight: bold !important;
+								fill: #1A1A1A !important;
+							}
+						`;
+						document.head.appendChild(style);
+					}
+
+					// Add class to plot container for styling
+					if (plotElement) {
+						plotElement.classList.add("sunburst-plot");
+					}
 
 					// Note: Click events are now handled by tooltips on hover
 				},

@@ -33,17 +33,16 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
 
-    const defaultOptions: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    };
+    // Don't set Content-Type for FormData - let the browser handle it
+    const isFormData = options.body instanceof FormData;
+    const headers: HeadersInit = isFormData
+      ? { ...options.headers }
+      : { 'Content-Type': 'application/json', ...options.headers };
 
     try {
       const response = await fetch(url, {
-        ...defaultOptions,
         ...options,
+        headers,
       });
 
       if (!response.ok) {
@@ -70,11 +69,28 @@ class ApiClient {
     const formData = new FormData();
     formData.append('tsv_file', params.tsv_file);
 
-    return this.request<Pathway[]>(`/api/gsea?gmt_name=${encodeURIComponent(params.gmt_name)}`, {
-      method: 'POST',
-      body: formData,
-      headers: {}, // Let the browser set the Content-Type for FormData
-    });
+    const response = await this.request<{ results: Pathway[]; input_overlap: unknown }>(
+      `/api/gsea?gmt_name=${encodeURIComponent(params.gmt_name)}`,
+      {
+        method: 'POST',
+        body: formData,
+        headers: {}, // Let the browser set the Content-Type for FormData
+      }
+    );
+
+    // Extract results array from the response
+    if (response.status === 'success' && response.data?.results) {
+      return {
+        data: response.data.results,
+        status: 'success',
+      };
+    }
+
+    return {
+      data: [],
+      message: response.message || 'Failed to run GSEA analysis',
+      status: 'error',
+    };
   }
 
   // Get available GMT libraries
@@ -97,7 +113,7 @@ class ApiClient {
       searchParams.append('hide_leading_edge', params.hide_leading_edge.toString());
     }
 
-    return this.request<Pathway[]>(`/pathways/?${searchParams.toString()}`);
+    return this.request<Pathway[]>(`/api/pathways/?${searchParams.toString()}`);
   }
 
   // Health check

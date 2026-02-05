@@ -8,7 +8,7 @@ help:
 	@echo "Available commands:"
 	@echo "  Development:"
 	@echo "    make start-dev-ui    - Start the development UI server"
-	@echo "    make start-api-dev   - Start FastAPI dev server with built UI"
+	@echo   - Start FastAPI dev server with built UI"
 	@echo "    make install-deps    - Install all dependencies (backend and frontend)"
 	@echo "    make clean           - Clean up node_modules and cache"
 	@echo ""
@@ -36,8 +36,7 @@ start-dev-ui:
 	@echo "🚀 Starting Vite development server..."
 	@cd ui && npm run dev
 
-# Start FastAPI development server with built UI
-start-api-dev:
+# Start FastAPI development server wit:
 	@echo "🔧 Starting FastAPI development server with built UI..."
 	@if [ ! -d "ui/node_modules" ]; then \
 		echo "📦 Installing frontend dependencies first..."; \

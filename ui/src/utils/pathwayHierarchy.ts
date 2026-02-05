@@ -48,15 +48,12 @@ export const buildPathwayHierarchy = (pathways: Pathway[]): HierarchyData => {
     }
   });
 
-  // If we have root pathways, return them
-  if (rootPathways.length > 0) {
-    return { pathwayMap, childrenMap, rootPathways, secondLevelPathways: [] };
-  }
-
-  // If no root pathways, find pathways whose parents are not in the dataset
-  // These will be treated as "second level" pathways
+  // Always check for pathways whose parents are not in the dataset
+  // These should be treated as "second level" pathways and displayed at root level
   pathways.forEach((pathway) => {
     const id = pathway["ID"] || pathway["id"] || "";
+    // Skip if already in rootPathways (has no parent)
+    if (rootPathways.includes(pathway)) return;
     if (processedIds.has(id)) return;
 
     const parentPathway =
@@ -74,8 +71,8 @@ export const buildPathwayHierarchy = (pathways: Pathway[]): HierarchyData => {
     }
   });
 
-  // If still no second-level pathways found, use all pathways as fallback
-  if (secondLevelPathways.length === 0) {
+  // If no root pathways and no second-level pathways found, use all pathways as fallback
+  if (rootPathways.length === 0 && secondLevelPathways.length === 0) {
     secondLevelPathways.push(...pathways);
   }
 
@@ -109,8 +106,9 @@ export const buildPathwayTree = (pathways: Pathway[]): TreeNode[] => {
       .filter(Boolean) as TreeNode[];
   };
 
-  // Use root pathways if available, otherwise use second-level pathways
-  const topLevelPathways = rootPathways.length > 0 ? rootPathways : secondLevelPathways;
+  // Use root pathways and second-level pathways (pathways with missing parents)
+  // Both should be displayed at the top level
+  const topLevelPathways = [...rootPathways, ...secondLevelPathways];
   const rootNodes: TreeNode[] = [];
 
   topLevelPathways.forEach((pathway) => {
@@ -128,12 +126,14 @@ export const buildPathwayTree = (pathways: Pathway[]): TreeNode[] => {
 
 /**
  * Gets the effective root pathways for display purposes.
- * Returns root pathways if available, otherwise returns second-level pathways.
+ * Returns root pathways and pathways with missing parents (second-level pathways).
+ * Both should be displayed at the top level.
  * 
  * @param pathways - Array of pathway objects
  * @returns Array of pathway objects that should be displayed as top-level
  */
 export const getEffectiveRootPathways = (pathways: Pathway[]): Pathway[] => {
   const { rootPathways, secondLevelPathways } = buildPathwayHierarchy(pathways);
-  return rootPathways.length > 0 ? rootPathways : secondLevelPathways;
+  // Return both root pathways and pathways with missing parents
+  return [...rootPathways, ...secondLevelPathways];
 };

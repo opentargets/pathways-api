@@ -200,6 +200,13 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
         lambda x: len(id_to_genes.get(x, [])) if pd.notna(x) and x != "" else 0
     )
 
+    # --- All pathway genes = all approved genes from GMT for this pathway ---
+    # Filter to only include approved symbols to match the analysis filtering
+    res_df["All pathway genes"] = res_df["ID"].map(
+        lambda x: ",".join([g for g in id_to_genes.get(x, []) if g and str(g).strip() in approved_symbols])
+        if pd.notna(x) and x != "" and id_to_genes.get(x, []) else ""
+    )
+
     rename_map = {
         "Term": "Pathway",
         "es": "ES",
@@ -225,7 +232,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
             res_df.groupby(
                 [
                     "ID", "Link", "Pathway", "ES", "NES", "FDR", "p-value",
-                    "Sidak's p-value", "Number of input genes", "Leading edge genes", "Pathway size",
+                    "Sidak's p-value", "Number of input genes", "Leading edge genes", "Pathway size", "All pathway genes",
                 ],
                 dropna=False,
             )["Parent pathway"]
@@ -261,7 +268,7 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     })
 
     # Ensure string columns are properly handled
-    string_columns = ['Leading edge genes', 'Parent pathway']
+    string_columns = ['Leading edge genes', 'All pathway genes', 'Parent pathway']
     for col in string_columns:
         if col in res_df.columns:
             res_df[col] = res_df[col].astype(str).replace('nan', '')

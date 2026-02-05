@@ -56,7 +56,7 @@ except Exception as e:
 
 try:
     logger.info("Registering pathways router...")
-    app.include_router(pathways_router)
+    app.include_router(pathways_router, prefix="/api")
     logger.info(f"Pathways router registered successfully")
 except Exception as e:
     logger.error(f"Failed to register pathways router: {e}", exc_info=True)

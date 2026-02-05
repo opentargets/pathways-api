@@ -12,11 +12,13 @@ import {
 	IconButton,
 	Tooltip,
 	Link,
+	Button,
 } from "@mui/material";
 import {
 	ArrowUpward as SortAscIcon,
 	ArrowDownward as SortDescIcon,
 	UnfoldMore as SortIcon,
+	Download as DownloadIcon,
 } from "@mui/icons-material";
 import type { Pathway } from "../../lib/api";
 
@@ -50,6 +52,7 @@ const PathwaysTable: React.FC<PathwaysTableProps> = ({ pathways }) => {
 			"p-value",
 			"Sidak's p-value",
 			"Input gene number",
+			"All pathway genes",
 			"Leading edge genes"
 			
 		];
@@ -129,6 +132,37 @@ const PathwaysTable: React.FC<PathwaysTableProps> = ({ pathways }) => {
 		return sortConfig.direction === "asc" ? <SortAscIcon /> : <SortDescIcon />;
 	};
 
+	const downloadCSV = () => {
+		// Create CSV content
+		const headers = allKeys.join(",");
+		const rows = sortedPathways.map((pathway) =>
+			allKeys
+				.map((key) => {
+					const value = pathway[key];
+					if (value === undefined || value === null) return "";
+					// Escape quotes and wrap in quotes if contains comma or quote
+					const strValue = String(value);
+					if (strValue.includes(",") || strValue.includes('"') || strValue.includes("\n")) {
+						return `"${strValue.replace(/"/g, '""')}"`;
+					}
+					return strValue;
+				})
+				.join(",")
+		);
+		const csvContent = [headers, ...rows].join("\n");
+
+		// Create and trigger download
+		const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.setAttribute("href", url);
+		link.setAttribute("download", `gsea_results_${new Date().toISOString().split("T")[0]}.csv`);
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+	};
+
 	const formatValue = (value: unknown, key: string, pathway: Pathway) => {
 		if (value === undefined || value === null) return "-";
 	
@@ -170,7 +204,18 @@ const PathwaysTable: React.FC<PathwaysTableProps> = ({ pathways }) => {
 	}
 
 	return (
-		<TableContainer component={Paper} sx={{ maxHeight: 900 }}>
+		<Box>
+			<Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+				<Button
+					variant="outlined"
+					size="small"
+					startIcon={<DownloadIcon />}
+					onClick={downloadCSV}
+				>
+					Download CSV
+				</Button>
+			</Box>
+			<TableContainer component={Paper} sx={{ maxHeight: 900 }}>
 			<Table stickyHeader>
 				<TableHead>
 					<TableRow>
@@ -179,8 +224,8 @@ const PathwaysTable: React.FC<PathwaysTableProps> = ({ pathways }) => {
 								key={key}
 								sx={{
 									fontWeight: "bold",
-									maxWidth: key === "Leading edge genes" ? "300px" : "auto",
-									width: key === "Leading edge genes" ? "300px" : "auto",
+									maxWidth: (key === "All pathway genes" || key === "Leading edge genes") ? "300px" : "auto",
+									width: (key === "All pathway genes" || key === "Leading edge genes") ? "300px" : "auto",
 									cursor: "pointer",
 									"&:hover": {
 										backgroundColor: "rgba(0, 0, 0, 0.04)",
@@ -213,14 +258,14 @@ const PathwaysTable: React.FC<PathwaysTableProps> = ({ pathways }) => {
 								<TableCell
 									key={key}
 									sx={{
-										maxWidth: key === "Leading edge genes" ? "300px" : "auto",
-										width: key === "Leading edge genes" ? "300px" : "auto",
+										maxWidth: (key === "All pathway genes" || key === "Leading edge genes") ? "300px" : "auto",
+										width: (key === "All pathway genes" || key === "Leading edge genes") ? "300px" : "auto",
 										wordWrap:
-											key === "Leading edge genes" ? "break-word" : "normal",
+											(key === "All pathway genes" || key === "Leading edge genes") ? "break-word" : "normal",
 										overflow:
-											key === "Leading edge genes" ? "hidden" : "visible",
+											(key === "All pathway genes" || key === "Leading edge genes") ? "hidden" : "visible",
 										textOverflow:
-											key === "Leading edge genes" ? "ellipsis" : "clip",
+											(key === "All pathway genes" || key === "Leading edge genes") ? "ellipsis" : "clip",
 									}}
 								>
 									{formatValue(pathway[key], key, pathway)}
@@ -231,6 +276,7 @@ const PathwaysTable: React.FC<PathwaysTableProps> = ({ pathways }) => {
 				</TableBody>
 			</Table>
 		</TableContainer>
+		</Box>
 	);
 };
 

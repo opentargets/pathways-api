@@ -24,13 +24,13 @@ const PathwayTooltip: React.FC<PathwayTooltipProps> = ({
 	const fdr = pathway["FDR"] || pathway["fdr"] || 1;
 	const es = pathway["ES"] || pathway["es"] || 0;
 	const nes = pathway["NES"] || pathway["nes"] || 0;
-	const genes = pathway["Leading edge genes"] || pathway["genes"] || "";
+	const genes = pathway["All pathway genes"] || pathway["Leading edge genes"] || pathway["genes"] || "";
 	const geneCount = pathway["Number of input genes"] || 0;
 	const pathwaySize = pathway["Pathway size"] || 0;
 
 	const geneList =
 		typeof genes === "string"
-			? genes.split(",").map((g) => g.trim())
+			? genes.split(",").map((g) => g.trim()).filter((g) => g)
 			: Array.isArray(genes)
 				? genes
 				: [];
@@ -89,7 +89,7 @@ const PathwayTooltip: React.FC<PathwayTooltipProps> = ({
 			{showGenes && geneList.length > 0 && (
 				<Box>
 					<Typography variant="subtitle2" gutterBottom>
-						Leading Edge Genes:
+						All Pathway Genes:
 					</Typography>
 					<Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
 						{geneList.slice(0, 10).map((gene, index) => (
