@@ -1,4 +1,14 @@
-const API_BASE_URL = 'http://localhost:8000';
+const getApiBaseUrl = () => {
+  // For production (when served from the same domain)
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return ''; // Use relative URLs in production
+  }
+
+  // For local development
+  return import.meta.env.VITE_API_URL || 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export type Pathway = Record<string, any>;
 
@@ -65,12 +75,12 @@ class ApiClient {
     }
   }
 
-  // GSEA endpoint
+  // GSEA endpoint - file upload
   async runGsea(params: GseaParams): Promise<ApiResponse<Pathway[]>> {
     const formData = new FormData();
     formData.append('tsv_file', params.tsv_file);
 
-    return this.request<Pathway[]>(`/api/gsea?gmt_name=${encodeURIComponent(params.gmt_name)}`, {
+    return this.request<Pathway[]>(`/api/gsea/analyze/file?gmt_name=${encodeURIComponent(params.gmt_name)}`, {
       method: 'POST',
       body: formData,
       headers: {}, // Let the browser set the Content-Type for FormData

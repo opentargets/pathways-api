@@ -16,19 +16,20 @@ def get_approved_symbols_from_gcs():
     """
     # Initialize GCS filesystem
     fs = gcsfs.GCSFileSystem()
-    
+
     # Define the GCS path to the target directory
     gcs_path = "open-targets-pre-data-releases/25.09/output/target/"
-    
+
     # Read all parquet files in the directory as a single dataset
     # This is much more efficient than downloading individual files
     df = pd.read_parquet(gcs_path, filesystem=fs, columns=["approvedSymbol"])
-    
+
     # Extract unique approved symbols (excluding NaN values)
     approved_symbols = set(df["approvedSymbol"].dropna().astype(str))
 
-    
+
     return approved_symbols
+
 
 def load_custom_gmt(path):
     p = Path(path)
@@ -38,6 +39,7 @@ def load_custom_gmt(path):
             for line in f
             if (parts := line.strip().split("\t")) and len(parts) > MIN_GENE_COL_IDX
         }
+
 
 def available_gmt_files():
     """
@@ -62,14 +64,24 @@ def available_gmt_files():
             }
     return libraries
 
-def run_gsea(input_tsv=None, gmt_name=None, processes=4):
-    """
-    Run GSEA using a chosen GMT library and its hierarchy (if present).
-    Pathway size is computed from the GMT (total genes in the pathway).
-    Ensure 'Number of input genes' and 'Pathway size' are integers (no .0).
-    """
-    input_tsv = Path(input_tsv)
 
+def run_gsea_from_dataframe(
+    df: pd.DataFrame, gmt_name: str, processes: int = 4
+) -> tuple[pd.DataFrame, dict]:
+    """
+    Run GSEA using a DataFrame directly (no file required).
+
+    Args:
+        df: DataFrame with 'symbol' and 'globalScore' columns, already validated
+        gmt_name: Name of GMT library to use
+        processes: Number of CPU processes
+
+    Returns:
+        Tuple of (DataFrame with GSEA results, overlap_stats dict)
+
+    Raises:
+        ValueError: If gmt_name is invalid or DataFrame is missing required columns
+    """
     gmt_files = available_gmt_files()
     if not gmt_name or gmt_name not in gmt_files:
         msg = "Invalid gmt_name. Choose from: " + str(list(gmt_files.keys()))
@@ -107,16 +119,9 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
                     # if no braces, map Term itself as ID
                     id_to_genes[term] = genes
 
-    # --- Load input file safely ---
-    df = pd.read_csv(input_tsv, sep="\t")
-
-    # Allow unnamed columns (0,1) and rename to expected headers
-    if set(df.columns) == set(range(len(df.columns))):
-        df = df.rename(columns={0: "symbol", 1: "globalScore"})
-
+    # Ensure DataFrame is properly formatted
     if not {"symbol", "globalScore"}.issubset(df.columns):
-        msg = "Input file must contain 'symbol' and 'globalScore' columns."
-        raise ValueError(msg)
+        raise ValueError("DataFrame must contain 'symbol' and 'globalScore' columns.")
 
     # Keep only required columns
     df = df[["symbol", "globalScore"]].copy()
@@ -170,7 +175,9 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     if contains_braces:
         term_series = res_df["Term"]
         res_df["ID"] = term_series.str.extract(r"\{([^}]+)\}", expand=False).fillna("")
-        res_df["Term"] = term_series.str.replace(r"\s*\{[^}]+\}", "", regex=True).str.strip()
+        res_df["Term"] = term_series.str.replace(
+            r"\s*\{[^}]+\}", "", regex=True
+        ).str.strip()
     else:
         res_df["ID"] = res_df["Term"]  # use Term as ID directly
 
@@ -261,3 +268,33 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
 
     return res_df, overlap_stats
 
+
+def run_gsea(input_tsv=None, gmt_name=None, processes=4):
+    """
+    Run GSEA from a TSV file path (backward compatible).
+
+    Args:
+        input_tsv: Path to TSV file with 'symbol' and 'globalScore' columns
+        gmt_name: Name of GMT library to use
+        processes: Number of CPU processes
+
+    Returns:
+        Tuple of (DataFrame with GSEA results, overlap_stats dict)
+
+    Raises:
+        ValueError: If gmt_name is invalid or file is missing required columns
+    """
+    if not input_tsv:
+        raise ValueError("input_tsv parameter is required")
+
+    input_tsv = Path(input_tsv)
+
+    # Load input file
+    df = pd.read_csv(input_tsv, sep="\t")
+
+    # Handle unnamed columns (legacy support)
+    if set(df.columns) == set(range(len(df.columns))):
+        df = df.rename(columns={0: "symbol", 1: "globalScore"})
+
+    # Validate and run GSEA using the DataFrame-based function
+    return run_gsea_from_dataframe(df, gmt_name, processes)

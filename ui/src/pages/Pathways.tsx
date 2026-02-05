@@ -9,15 +9,19 @@ import {
 	MenuItem,
 	Button,
 	Alert,
+	Switch,
+	FormControlLabel,
 } from "@mui/material";
 import { CloudUpload } from "@mui/icons-material";
 import { useGsea, useGmtLibraries } from "../hooks/useApi";
 import PathwaysResults from "../components/PathwaysResults";
+import { mockPathwayData } from "../data/mockPathwayData";
 
 const Pathways: React.FC = () => {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [library, setLibrary] = useState<string>("");
 	const [fileError, setFileError] = useState<string>("");
+	const [testMode, setTestMode] = useState<boolean>(false);
 
 	const {
 		data: gmtLibraries,
@@ -32,7 +36,10 @@ const Pathways: React.FC = () => {
 		execute: runGsea,
 	} = useGsea();
 
-	console.log({pathways});
+	// Use mock data in test mode, otherwise use real data
+	const displayPathways = testMode ? mockPathwayData : pathways;
+	const displayLoading = testMode ? false : loading;
+	const displayError = testMode ? null : error;
 
 	// Set default library when libraries are loaded
 	React.useEffect(() => {
@@ -91,7 +98,7 @@ const Pathways: React.FC = () => {
 								value={library}
 								label="GMT Library"
 								onChange={(e) => setLibrary(e.target.value)}
-								disabled={librariesLoading}
+								disabled={librariesLoading || testMode}
 							>
 								{gmtLibraries?.map((lib) => (
 									<MenuItem key={lib} value={lib}>
@@ -115,6 +122,7 @@ const Pathways: React.FC = () => {
 							id="tsv-file-upload"
 							type="file"
 							onChange={handleFileSelect}
+							disabled={testMode}
 						/>
 						<label htmlFor="tsv-file-upload">
 							<Button
@@ -122,6 +130,7 @@ const Pathways: React.FC = () => {
 								component="span"
 								startIcon={<CloudUpload />}
 								fullWidth
+								disabled={testMode}
 							>
 								{selectedFile ? selectedFile.name : "Choose TSV File"}
 							</Button>
@@ -137,21 +146,31 @@ const Pathways: React.FC = () => {
 					</Box>
 
 					<Box sx={{ flex: "1 1 300px", minWidth: 0 }}>
+						<FormControlLabel
+							control={
+								<Switch
+									checked={testMode}
+									onChange={(e) => setTestMode(e.target.checked)}
+								/>
+							}
+							label="Test Mode (Use Mock Data)"
+							sx={{ mb: 2 }}
+						/>
 						<Button
 							variant="contained"
 							color="primary"
 							onClick={handleSubmit}
-							disabled={!selectedFile || !library || loading}
+							disabled={(!selectedFile || !library) && !testMode || loading}
 							fullWidth
 							sx={{ mt: 4 }}
 						>
-							{loading ? "Running GSEA..." : "Run GSEA Analysis"}
+							{loading ? "Running GSEA..." : testMode ? "Show Test Data" : "Run GSEA Analysis"}
 						</Button>
 					</Box>
 				</Box>
 			</Box>
 
-			<PathwaysResults pathways={pathways} loading={loading} error={error} />
+			<PathwaysResults pathways={displayPathways} loading={displayLoading} error={displayError} />
 		</Container>
 	);
 };
