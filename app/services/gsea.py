@@ -50,18 +50,29 @@ def available_gmt_files():
     }
     """
     libraries = {}
-    for folder in GMT_DIR.iterdir():
-        if folder.is_dir():
-            gmt_files = list(folder.glob("*.gmt"))
-            txt_files = list(folder.glob("*.txt"))
-            if not gmt_files:
-                continue
-            gmt_file = gmt_files[0]
-            hierarchy_file = txt_files[0] if txt_files else None
-            libraries[f"{folder.name}/{gmt_file.stem}"] = {
-                "gmt": gmt_file,
-                "hierarchy": hierarchy_file,
-            }
+    # Collect all folders first
+    folders = [f for f in GMT_DIR.iterdir() if f.is_dir()]
+    
+    # Sort folders: Reactome first, then others alphabetically
+    def sort_key(folder):
+        if folder.name.startswith("Reactome"):
+            return (0, folder.name)
+        return (1, folder.name)
+    
+    folders.sort(key=sort_key)
+    
+    # Build libraries dictionary in sorted order
+    for folder in folders:
+        gmt_files = list(folder.glob("*.gmt"))
+        txt_files = list(folder.glob("*.txt"))
+        if not gmt_files:
+            continue
+        gmt_file = gmt_files[0]
+        hierarchy_file = txt_files[0] if txt_files else None
+        libraries[f"{folder.name}/{gmt_file.stem}"] = {
+            "gmt": gmt_file,
+            "hierarchy": hierarchy_file,
+        }
     return libraries
 
 
