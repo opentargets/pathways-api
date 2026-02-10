@@ -18,7 +18,7 @@ async def list_gmt_files():
 
 
 @router.post("/gsea/analyze/file")
-async def analyze_gsea_from_file(
+def analyze_gsea_from_file(
     tsv_file: UploadFile = File(
         ...,
         description="TSV file containing at least 2 columns: 'symbol' and 'globalScore'",
@@ -45,7 +45,7 @@ async def analyze_gsea_from_file(
 
     # Read and validate file
     with tempfile.NamedTemporaryFile(delete=False, suffix=".tsv") as tmp:
-        content = await tsv_file.read()
+        content = tsv_file.file.read()
         tmp.write(content)
         tsv_path = tmp.name
 
@@ -83,7 +83,7 @@ async def analyze_gsea_from_file(
 
 
 @router.post("/gsea/analyze/json")
-async def analyze_gsea_from_json(
+def analyze_gsea_from_json(
     request: GseaJsonRequest,
     gmt_name: str = Query(..., description="GMT library name (without .gmt extension)"),
     analysis_direction: Literal["one_sided_positive", "one_sided_negative", "two_sided"] = Query(
