@@ -1,34 +1,61 @@
 from pathlib import Path
+from collections import OrderedDict
+import hashlib
+import json
+import logging
+import threading
+
 import numpy as np
 import blitzgsea as blitz
 import gcsfs
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parents[1]  # app/
 DATA_DIR = BASE_DIR / "data"
 GMT_DIR = DATA_DIR / "gmt"
 MIN_GENE_COL_IDX = 2
 
-def get_approved_symbols_from_gcs():
+# --- Caches ---
+_approved_symbols_cache: set[str] | None = None
+_approved_symbols_lock = threading.Lock()
+
+_GSEA_CACHE_MAX_SIZE = 50
+_gsea_cache: OrderedDict[str, tuple[pd.DataFrame, dict]] = OrderedDict()
+_gsea_cache_lock = threading.Lock()
+
+
+def _compute_cache_key(df: pd.DataFrame, gmt_name: str) -> str:
+    sorted_genes = sorted(
+        ([str(s), float(sc)] for s, sc in df[["symbol", "globalScore"]].values),
+        key=lambda x: x[0],
+    )
+    key_data = json.dumps({"genes": sorted_genes, "gmt": gmt_name}, sort_keys=True)
+    return hashlib.sha256(key_data.encode()).hexdigest()
+
+
+def get_approved_symbols_from_gcs() -> set[str]:
     """
     Read approvedSymbol column from Open Targets target parquet files in GCS using gcsfs.
-    Returns a set of approved gene symbols.
+    Returns a set of approved gene symbols. Result is cached for the lifetime of the process.
     """
-    # Initialize GCS filesystem
-    fs = gcsfs.GCSFileSystem()
+    global _approved_symbols_cache
+    if _approved_symbols_cache is not None:
+        return _approved_symbols_cache
 
-    # Define the GCS path to the target directory
-    gcs_path = "open-targets-pre-data-releases/25.09/output/target/"
+    with _approved_symbols_lock:
+        # Double-check after acquiring lock
+        if _approved_symbols_cache is not None:
+            return _approved_symbols_cache
 
-    # Read all parquet files in the directory as a single dataset
-    # This is much more efficient than downloading individual files
-    df = pd.read_parquet(gcs_path, filesystem=fs, columns=["approvedSymbol"])
-
-    # Extract unique approved symbols (excluding NaN values)
-    approved_symbols = set(df["approvedSymbol"].dropna().astype(str))
-
-
-    return approved_symbols
+        fs = gcsfs.GCSFileSystem()
+        gcs_path = "open-targets-pre-data-releases/25.09/output/target/"
+        df = pd.read_parquet(gcs_path, filesystem=fs, columns=["approvedSymbol"])
+        approved_symbols = set(df["approvedSymbol"].dropna().astype(str))
+        logger.info("Fetched %d approved symbols from GCS (cached for instance lifetime)", len(approved_symbols))
+        _approved_symbols_cache = approved_symbols
+        return approved_symbols
 
 
 def load_custom_gmt(path):
@@ -81,6 +108,7 @@ def run_gsea_from_dataframe(
 ) -> tuple[pd.DataFrame, dict]:
     """
     Run GSEA using a DataFrame directly (no file required).
+    Results are cached by input hash (genes + gmt_name) to avoid redundant computation.
 
     Args:
         df: DataFrame with 'symbol' and 'globalScore' columns, already validated
@@ -93,6 +121,17 @@ def run_gsea_from_dataframe(
     Raises:
         ValueError: If gmt_name is invalid or DataFrame is missing required columns
     """
+    # Check cache before doing any work
+    cache_key = _compute_cache_key(df, gmt_name)
+    with _gsea_cache_lock:
+        if cache_key in _gsea_cache:
+            _gsea_cache.move_to_end(cache_key)
+            logger.info("GSEA cache hit for key %s (library: %s)", cache_key[:12], gmt_name)
+            cached_df, cached_overlap = _gsea_cache[cache_key]
+            return cached_df.copy(), cached_overlap.copy()
+
+    logger.info("GSEA cache miss for key %s (library: %s) — running analysis", cache_key[:12], gmt_name)
+
     gmt_files = available_gmt_files()
     if not gmt_name or gmt_name not in gmt_files:
         msg = "Invalid gmt_name. Choose from: " + str(list(gmt_files.keys()))
@@ -276,6 +315,12 @@ def run_gsea_from_dataframe(
         if col in res_df.columns:
             res_df[col] = res_df[col].astype(str).replace('nan', '')
 
+
+    # Store in cache
+    with _gsea_cache_lock:
+        _gsea_cache[cache_key] = (res_df.copy(), overlap_stats.copy())
+        if len(_gsea_cache) > _GSEA_CACHE_MAX_SIZE:
+            _gsea_cache.popitem(last=False)
 
     return res_df, overlap_stats
 
