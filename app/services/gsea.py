@@ -244,9 +244,12 @@ def run_gsea_from_dataframe(
     else:
         res_df["Link"] = "https://www.ebi.ac.uk/chembl/visualise"
 
-    # --- Size = number of genes defined in GMT ---
+    # --- Size and full gene list from GMT ---
     res_df["Pathway size"] = res_df["ID"].map(
         lambda x: len(id_to_genes.get(x, [])) if pd.notna(x) and x != "" else 0
+    )
+    res_df["Pathway genes"] = res_df["ID"].map(
+        lambda x: ",".join(id_to_genes.get(x, [])) if pd.notna(x) and x != "" else ""
     )
 
     rename_map = {
@@ -274,7 +277,8 @@ def run_gsea_from_dataframe(
             res_df.groupby(
                 [
                     "ID", "Link", "Pathway", "ES", "NES", "FDR", "p-value",
-                    "Sidak's p-value", "Number of input genes", "Leading edge genes", "Pathway size",
+                    "Sidak's p-value", "Number of input genes", "Leading edge genes",
+                    "Pathway size", "Pathway genes",
                 ],
                 dropna=False,
             )["Parent pathway"]
@@ -310,7 +314,7 @@ def run_gsea_from_dataframe(
     })
 
     # Ensure string columns are properly handled
-    string_columns = ['Leading edge genes', 'Parent pathway']
+    string_columns = ['Leading edge genes', 'Pathway genes', 'Parent pathway']
     for col in string_columns:
         if col in res_df.columns:
             res_df[col] = res_df[col].astype(str).replace('nan', '')
