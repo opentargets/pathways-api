@@ -375,12 +375,11 @@ def run_gsea_from_dataframe(
 
     # --- Filter genes to only include those in Open Targets approved symbols ---
     approved_symbols = get_approved_symbols()
-    df: pl.DataFrame = (
-        df.filter(pl.col("symbol").is_in(approved_symbols))
-        .sort("globalScore", descending=True)
-        .unique(subset=["symbol"], keep="first")
+    df: pl.DataFrame = df.filter(pl.col("symbol").is_in(approved_symbols)).unique(
+        subset=["symbol"], keep="first"
     )
     pddf = df.to_pandas()
+    logger.info(f"Filtered to {len(pddf)} approved symbols")
 
     # Sort by score desc and drop duplicate symbols keeping highest score (originals win over zeros)
     # df = df.sort_values("globalScore", ascending=False)
@@ -390,113 +389,6 @@ def run_gsea_from_dataframe(
         names="Term"
     )
     res_df = clean_df(res_df, contains_braces, gmt_file, id_to_genes, hierarchy_file)
-
-    # --- Extract IDs and clean terms ---
-    # if contains_braces:
-    #     term_series = res_df["Term"]
-    #     res_df["ID"] = term_series.str.extract(r"\{([^}]+)\}", expand=False).fillna("")
-    #     res_df["Term"] = term_series.str.replace(
-    #         r"\s*\{[^}]+\}", "", regex=True
-    #     ).str.strip()
-    # else:
-    #     res_df["ID"] = res_df["Term"]  # use Term as ID directly
-
-    # if "leading_edge" in res_df.columns:
-    #     res_df["leading_edge"] = res_df["leading_edge"].apply(
-    #         lambda x: ",".join(x) if isinstance(x, (list, tuple)) else str(x)
-    #     )
-
-    # # --- Dynamic link assignment ---
-    # if gmt_file.stem.startswith("GO"):
-    #     res_df["Link"] = "https://www.ebi.ac.uk/QuickGO/term/" + res_df["ID"]
-    # elif gmt_file.stem.startswith("Reactome"):
-    #     res_df["Link"] = "https://reactome.org/content/detail/" + res_df["ID"]
-    # else:
-    #     res_df["Link"] = "https://www.ebi.ac.uk/chembl/visualise"
-
-    # # --- Size = number of genes defined in GMT ---
-    # res_df["Pathway size"] = res_df["ID"].map(
-    #     lambda x: len(id_to_genes.get(x, [])) if pd.notna(x) and x != "" else 0
-    # )
-
-    # rename_map = {
-    #     "Term": "Pathway",
-    #     "es": "ES",
-    #     "nes": "NES",
-    #     "fdr": "FDR",
-    #     "pval": "p-value",
-    #     "sidak": "Sidak's p-value",
-    #     "geneset_size": "Number of input genes",
-    #     "leading_edge": "Leading edge genes",
-    # }
-    # res_df = res_df.rename(columns=rename_map)
-
-    # # --- Load hierarchy mapping if available ---
-    # if hierarchy_file and hierarchy_file.exists():
-    #     hierarchy_df = pd.read_csv(
-    #         hierarchy_file,
-    #         sep="\t",
-    #         header=None,
-    #         names=["Parent pathway", "Child pathway"],
-    #     )
-    #     res_df = res_df.merge(
-    #         hierarchy_df, left_on="ID", right_on="Child pathway", how="left"
-    #     )
-    #     res_df = (
-    #         res_df.groupby(
-    #             [
-    #                 "ID",
-    #                 "Link",
-    #                 "Pathway",
-    #                 "ES",
-    #                 "NES",
-    #                 "FDR",
-    #                 "p-value",
-    #                 "Sidak's p-value",
-    #                 "Number of input genes",
-    #                 "Leading edge genes",
-    #                 "Pathway size",
-    #             ],
-    #             dropna=False,
-    #         )["Parent pathway"]
-    #         .apply(lambda x: ",".join(sorted(set(x.dropna()))))
-    #         .reset_index()
-    #     )
-    # else:
-    #     res_df["Parent pathway"] = ""
-
-    # --- Final: ensure integer formatting for counts (no .0) ---
-    # def safe_int_col(df_, col_name):
-    #     """
-    #     Clean a column (remove commas, coerce non-numeric → NaN), fill NaN with 0, then convert to int.
-    #     """
-    #     if col_name in df_.columns:
-    #         s = df_[col_name].astype(str).str.replace(",", "", regex=False).str.strip()
-    #         s = s.replace({"": None, "nan": None})
-    #         df_[col_name] = pd.to_numeric(s, errors="coerce").fillna(0).astype(int)
-
-    # safe_int_col(res_df, "Number of input genes")
-    # safe_int_col(res_df, "Pathway size")
-
-    # # Handle NaN values for JSON serialization
-    # res_df = res_df.replace([np.inf, -np.inf], np.nan)
-    # res_df = res_df.fillna(
-    #     {
-    #         "ES": 0.0,
-    #         "NES": 0.0,
-    #         "FDR": 1.0,
-    #         "p-value": 1.0,
-    #         "Sidak's p-value": 1.0,
-    #         "Number of input genes": 0,
-    #         "Pathway size": 0,
-    #     }
-    # )
-
-    # # Ensure string columns are properly handled
-    # string_columns = ["Leading edge genes", "Parent pathway"]
-    # for col in string_columns:
-    #     if col in res_df.columns:
-    #         res_df[col] = res_df[col].astype(str).replace("nan", "")
 
     # Store in cache
     with _gsea_cache_lock:

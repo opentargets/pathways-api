@@ -9,7 +9,7 @@ import app.services.gsea as gsea
 from app.utils import validate_gsea_dataframe
 
 
-def main(x=3):
+def main(x=10):
     with open("test.json") as f:
         correct = json.load(f)
     for i in range(1, x + 1):
@@ -31,14 +31,7 @@ def main(x=3):
             "input_overlap": input_overlap,
             "results": res_df.to_dict(orient="records"),
         }
-
         assert x["input_overlap"] == correct["input_overlap"]
-        print(x["results"][0])
-        # assert x["results"] == correct["results"] # are the results deterministic?
-
-        # assert hashlib.sha1(
-        #     json.dumps(x["input_overlap"], sort_keys=True).encode()
-        # ) == hashlib.sha1(json.dumps(correct["input_overlap"], sort_keys=True).encode())
 
 
 if __name__ == "__main__":
