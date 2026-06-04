@@ -29,13 +29,13 @@
 
 2. **Run with Docker Compose**:
    ```bash
-   make compose up
+   make compose-up
    ```
 
 3. **Access the application**:
-   - API: http://localhost:8000
-   - UI: http://localhost:8000/ui
-   - API Docs: http://localhost:8000/docs
+   - API: http://localhost:8080
+   - UI: http://localhost:8080/ui
+   - API Docs: http://localhost:8080/docs
 
 ### Development Setup
 
@@ -47,10 +47,10 @@
 2. **Start development servers**:
    ```bash
    # Start UI development server
-   make start dev ui
+   make start-dev-ui
    
    # In another terminal, start API with built UI
-   make start api dev
+   make start-api-dev
    ```
 
 ## Docker Deployment
@@ -59,7 +59,7 @@
 
 ```bash
 # Build the Docker image
-make docker build
+make docker-build
 
 # Or manually
 docker build -t pathways-api:latest .
@@ -69,23 +69,23 @@ docker build -t pathways-api:latest .
 
 ```bash
 # Run with Make
-make docker run
+make docker-run
 
 # Or manually
-docker run -d --name pathways-api -p 8000:8000 pathways-api:latest
+docker run -d --name pathways-api -p 8080:8080 pathways-api:latest
 ```
 
 ### Using Docker Compose
 
 ```bash
 # Start all services
-make compose up
+make compose-up
 
 # Stop all services
-make compose down
+make compose-down
 
 # View logs
-make compose logs
+make compose-logs
 ```
 
 ## GitHub Releases
@@ -123,9 +123,9 @@ This project uses automated GitHub Actions for building and releasing Docker ima
 
 ## API Documentation
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **OpenAPI Schema**: http://localhost:8000/openapi.json
+- **Swagger UI**: http://localhost:8080/docs
+- **ReDoc**: http://localhost:8080/redoc
+- **OpenAPI Schema**: http://localhost:8080/openapi.json
 
 ## Available Commands
 
@@ -137,16 +137,16 @@ make install-deps      # Install all dependencies
 make clean            # Clean up build artifacts
 
 # Docker
-make docker build     # Build Docker image
-make docker run       # Run Docker container
-make docker stop      # Stop Docker container
-make docker logs      # Show container logs
-make docker push      # Push to registry
+make docker-build     # Build Docker image
+make docker-run       # Run Docker container
+make docker-stop      # Stop Docker container
+make docker-logs      # Show container logs
+make docker-push      # Push to registry
 
 # Docker Compose
-make compose up       # Start services
-make compose down     # Stop services
-make compose logs     # Show logs
+make compose-up       # Start services
+make compose-down     # Stop services
+make compose-logs     # Show logs
 ```
 
 ## Configuration

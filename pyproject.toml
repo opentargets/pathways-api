@@ -19,7 +19,16 @@ dependencies = [
     "google-cloud-storage>=3.4.1",
     "pyarrow>=22.0.0",
     "gcsfs>=2025.9.0",
+    "gprof2dot>=2025.4.14",
+    "polars>=1.40.1",
+    "yappi>=1.7.6",
+    "ty>=0.0.42",
+    "duckdb>=1.5.3",
+    "loguru>=0.7.3",
 ]
 
 [dependency-groups]
+dev = [
+    "py-spy>=0.4.2",
+]
 lint = ["ruff>=0.7.1"]

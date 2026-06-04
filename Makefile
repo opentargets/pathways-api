@@ -39,17 +39,17 @@ start-dev-ui:
 # Start FastAPI development server with built UI
 start-api-dev:
 	@echo "🔧 Starting FastAPI development server with built UI..."
-	@if [ ! -d "ui/node_modules" ]; then \
-		echo "📦 Installing frontend dependencies first..."; \
-		cd ui && npm install && cd ..; \
-	fi
-	@echo "🏗️  Building UI for production..."
-	@cd ui && npm run build && cd ..
+	# @if [ ! -d "ui/node_modules" ]; then \
+	# 	echo "📦 Installing frontend dependencies first..."; \
+	# 	cd ui && npm install && cd ..; \
+	# fi
+	# @echo "🏗️  Building UI for production..."
+	# @cd ui && npm run build && cd ..
 	@echo "🚀 Starting FastAPI development server..."
-	@echo "📊 API will be available at: http://localhost:8000"
-	@echo "🎨 UI will be available at: http://localhost:8000/ui"
-	@echo "📚 API docs will be available at: http://localhost:8000/docs"
-	@uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+	@echo "📊 API will be available at: http://localhost:8080"
+	@echo "🎨 UI will be available at: http://localhost:8080/ui"
+	@echo "📚 API docs will be available at: http://localhost:8080/docs"
+	@sudo uv run py-spy record -o profile.svg --subprocesses -- uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 
 
 
@@ -77,8 +77,8 @@ docker-build:
 
 docker-run:
 	@echo "🚀 Running Docker container..."
-	@docker run -d --name pathways-api -p 8000:8000 pathways-api:latest
-	@echo "✅ Container started. Access at http://localhost:8000"
+	@docker run -d --name pathways-api -p 8080:8080 pathways-api:latest
+	@echo "✅ Container started. Access at http://localhost:8080"
 
 docker-stop:
 	@echo "🛑 Stopping Docker container..."
@@ -100,7 +100,7 @@ docker-push:
 compose-up:
 	@echo "🐳 Starting services with docker-compose..."
 	@docker-compose up -d
-	@echo "✅ Services started. Access at http://localhost:8000"
+	@echo "✅ Services started. Access at http://localhost:8080"
 
 compose-down:
 	@echo "🛑 Stopping services with docker-compose..."
@@ -109,4 +109,4 @@ compose-down:
 
 compose-logs:
 	@echo "📋 Showing docker-compose logs..."
-	@docker-compose logs -f 
+	@docker-compose logs -f

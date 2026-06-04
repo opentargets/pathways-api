@@ -1,8 +1,8 @@
+import polars as pl
 from fastapi import HTTPException
-import pandas as pd
 
 
-def validate_gsea_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+def validate_gsea_dataframe(df: pl.DataFrame) -> pl.DataFrame:
     """
     Validate and normalize a DataFrame for GSEA analysis.
 
@@ -17,7 +17,7 @@ def validate_gsea_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
     # Handle unnamed columns (legacy support)
     if set(df.columns) == set(range(len(df.columns))):
-        df = df.rename(columns={0: "symbol", 1: "globalScore"})
+        df = df.rename({"0": "symbol", "1": "globalScore"})
 
     # Validate required columns
     if not {"symbol", "globalScore"}.issubset(df.columns):
@@ -27,9 +27,7 @@ def validate_gsea_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         )
 
     # Extract only required columns and sort
-    df = df[["symbol", "globalScore"]].copy()
-    df = df.sort_values("globalScore", ascending=False)
-
+    df = df.select(["symbol", "globalScore"]).sort("globalScore", descending=True)
     return df
 
 
