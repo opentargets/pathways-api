@@ -375,11 +375,12 @@ def run_gsea_from_dataframe(
 
     # --- Filter genes to only include those in Open Targets approved symbols ---
     approved_symbols = get_approved_symbols()
-    df: pl.DataFrame = df.filter(pl.col("symbol").is_in(approved_symbols)).unique(
-        subset=["symbol"], keep="first"
+    df: pl.DataFrame = (
+        df.filter(pl.col("symbol").is_in(approved_symbols))
+        .sort("globalScore", descending=True)
+        .unique(subset=["symbol"], keep="first")
     )
     pddf = df.to_pandas()
-    logger.info(f"Filtered to {len(pddf)} approved symbols")
 
     # Sort by score desc and drop duplicate symbols keeping highest score (originals win over zeros)
     # df = df.sort_values("globalScore", ascending=False)
@@ -388,6 +389,8 @@ def run_gsea_from_dataframe(
     res_df = blitz.gsea(pddf, library_sets, processes=processes).reset_index(
         names="Term"
     )
+    logger.info(f"GSEA completed, results shape: {res_df.shape}")
+
     res_df = clean_df(res_df, contains_braces, gmt_file, id_to_genes, hierarchy_file)
 
     # Store in cache
