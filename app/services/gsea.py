@@ -7,7 +7,6 @@ from pathlib import Path
 
 import blitzgsea as blitz
 import duckdb
-import numpy as np
 import pandas as pd
 import polars as pl
 from loguru import logger
@@ -31,7 +30,7 @@ _approved_symbols_cache: set[str] | None = None
 _approved_symbols_lock = threading.Lock()
 
 _GSEA_CACHE_MAX_SIZE = 50
-_gsea_cache: OrderedDict[str, tuple[pd.DataFrame, dict]] = OrderedDict()
+_gsea_cache: OrderedDict[str, tuple[pl.DataFrame, dict]] = OrderedDict()
 _gsea_cache_lock = threading.Lock()
 
 
@@ -149,37 +148,54 @@ def get_gmt_file(gmt_name: str) -> GMTFiles:
 
 
 def clean_df(
-    res_df: pd.DataFrame,
+    res_df: pl.DataFrame,
     contains_braces: bool,
     gmt_file: Path,
     id_to_genes: dict,
     hierarchy_file: Path | None,
-) -> pd.DataFrame:
+) -> pl.DataFrame:
     if contains_braces:
         term_series = res_df["Term"]
-        res_df["ID"] = term_series.str.extract(r"\{([^}]+)\}", expand=False).fillna("")
-        res_df["Term"] = term_series.str.replace(
-            r"\s*\{[^}]+\}", "", regex=True
-        ).str.strip()
+        res_df = res_df.with_columns(
+            ID=term_series.str.extract(r"\{([^}]+)\}").fill_null(""),
+            Term=term_series.str.replace(r"\s*\{[^}]+\}", "").str.strip_chars(),
+        )
     else:
-        res_df["ID"] = res_df["Term"]  # use Term as ID directly
+        res_df = res_df.with_columns(ID=res_df["Term"])
 
     if "leading_edge" in res_df.columns:
-        res_df["leading_edge"] = res_df["leading_edge"].apply(
-            lambda x: ",".join(x) if isinstance(x, (list, tuple)) else str(x)
+        res_df = res_df.with_columns(
+            leading_edge=res_df["leading_edge"].cast(pl.List(pl.String)).list.join(",")
         )
 
     # --- Dynamic link assignment ---
     if gmt_file.stem.startswith("GO"):
-        res_df["Link"] = "https://www.ebi.ac.uk/QuickGO/term/" + res_df["ID"]
+        res_df = res_df.with_columns(
+            Link=pl.lit("https://www.ebi.ac.uk/QuickGO/term/") + res_df["ID"]
+        )
     elif gmt_file.stem.startswith("Reactome"):
-        res_df["Link"] = "https://reactome.org/content/detail/" + res_df["ID"]
+        res_df = res_df.with_columns(
+            Link=pl.lit("https://reactome.org/content/detail/") + res_df["ID"]
+        )
     else:
-        res_df["Link"] = "https://www.ebi.ac.uk/chembl/visualise"
+        res_df = res_df.with_columns(
+            Link=pl.lit("https://www.ebi.ac.uk/chembl/visualise")
+        )
 
     # --- Size = number of genes defined in GMT ---
-    res_df["Pathway size"] = res_df["ID"].map(
-        lambda x: len(id_to_genes.get(x, [])) if pd.notna(x) and x != "" else 0
+    id_to_gene_count = {k: len(v) for k, v in id_to_genes.items()}
+    res_df = res_df.with_columns(
+        PathwaySize=pl.when(pl.col("ID").is_null() | (pl.col("ID") == ""))
+        .then(0)
+        .otherwise(pl.col("ID").replace(id_to_gene_count, default=0))
+        .cast(pl.Int64),
+        PathwayGenes=pl.when(pl.col("ID").is_null() | (pl.col("ID") == ""))
+        .then(pl.lit(""))
+        .otherwise(
+            pl.col("ID").replace(
+                {k: ",".join(v) for k, v in id_to_genes.items()}, default=""
+            )
+        ),
     )
 
     rename_map = {
@@ -191,84 +207,83 @@ def clean_df(
         "sidak": "Sidak's p-value",
         "geneset_size": "Number of input genes",
         "leading_edge": "Leading edge genes",
+        "PathwaySize": "Pathway size",
+        "PathwayGenes": "Pathway genes",
     }
-    res_df = res_df.rename(columns=rename_map)
+    res_df = res_df.rename(rename_map)
 
     # --- Load hierarchy mapping if available ---
     if hierarchy_file and hierarchy_file.exists():
-        hierarchy_df = pd.read_csv(
+        hierarchy_df = pl.read_csv(
             hierarchy_file,
-            sep="\t",
-            header=None,
-            names=["Parent pathway", "Child pathway"],
+            separator="\t",
+            has_header=False,
+            new_columns=["Parent pathway", "Child pathway"],
         )
-        res_df = res_df.merge(
+        res_df = res_df.join(
             hierarchy_df, left_on="ID", right_on="Child pathway", how="left"
         )
-        res_df = (
-            res_df.groupby(
-                [
-                    "ID",
-                    "Link",
-                    "Pathway",
-                    "ES",
-                    "NES",
-                    "FDR",
-                    "p-value",
-                    "Sidak's p-value",
-                    "Number of input genes",
-                    "Leading edge genes",
-                    "Pathway size",
-                ],
-                dropna=False,
-            )["Parent pathway"]
-            .apply(lambda x: ",".join(sorted(set(x.dropna()))))
-            .reset_index()
-        )
+        res_df = res_df.group_by(
+            [
+                "ID",
+                "Link",
+                "Pathway",
+                "ES",
+                "NES",
+                "FDR",
+                "p-value",
+                "Sidak's p-value",
+                "Number of input genes",
+                "Leading edge genes",
+                "Pathway size",
+                "Pathway genes",
+            ]
+        ).agg(pl.col("Parent pathway").drop_nulls().unique().sort().str.join(","))
     else:
-        res_df["Parent pathway"] = ""
+        res_df = res_df.with_columns(pl.lit("").alias("Parent pathway"))
 
-    def safe_int_col(df_, col_name):
-        """
-        Clean a column (remove commas, coerce non-numeric → NaN), fill NaN with 0, then convert to int.
-        """
-        if col_name in df_.columns:
-            s = df_[col_name].astype(str).str.replace(",", "", regex=False).str.strip()
-            s = s.replace({"": None, "nan": None})
-            df_[col_name] = pd.to_numeric(s, errors="coerce").fillna(0).astype(int)
-
-    safe_int_col(res_df, "Number of input genes")
-    safe_int_col(res_df, "Pathway size")
-
-    # Handle NaN values for JSON serialization
-    res_df = res_df.replace([np.inf, -np.inf], np.nan)
-    res_df = res_df.fillna(
-        {
-            "ES": 0.0,
-            "NES": 0.0,
-            "FDR": 1.0,
-            "p-value": 1.0,
-            "Sidak's p-value": 1.0,
-            "Number of input genes": 0,
-            "Pathway size": 0,
-        }
+    float_defaults = {
+        "ES": 0.0,
+        "NES": 0.0,
+        "FDR": 1.0,
+        "p-value": 1.0,
+        "Sidak's p-value": 1.0,
+        "Number of input genes": 0,
+        "Pathway size": 0,
+    }
+    res_df = res_df.with_columns(
+        [
+            pl.col(col).fill_nan(val)
+            for col, val in float_defaults.items()
+            if col in res_df.columns  # safe guard for missing columns
+        ]
     )
 
     # Ensure string columns are properly handled
-    string_columns = ["Leading edge genes", "Parent pathway"]
-    for col in string_columns:
-        if col in res_df.columns:
-            res_df[col] = res_df[col].astype(str).replace("nan", "")
+
+    string_defaults = {
+        "Leading edge genes": "",
+        "Parent pathway": "",
+    }
+    res_df = res_df.with_columns(
+        [
+            pl.col(col).fill_null(val)
+            for col, val in string_defaults.items()
+            if col in res_df.columns  # safe guard for missing columns
+        ]
+    )
     return res_df
 
 
-def blitzgsea(df: pd.DataFrame, library_sets: dict, processes: int = 4) -> pd.DataFrame:
-    return blitz.gsea(df, library_sets, processes=processes).reset_index(names="Term")
+def blitzgsea(df: pd.DataFrame, library_sets: dict, processes: int = 4) -> pl.DataFrame:
+    return pl.from_pandas(
+        blitz.gsea(df, library_sets, processes=processes).reset_index(names="Term")
+    )
 
 
 def run_gsea_from_dataframe(
     df: pl.DataFrame, gmt_name: str, processes: int = 4
-) -> tuple[pd.DataFrame, dict]:
+) -> tuple[pl.DataFrame, dict]:
     """
     Run GSEA using a DataFrame directly (no file required).
     Results are cached by input hash (genes + gmt_name) to avoid redundant computation.
@@ -385,25 +400,19 @@ def run_gsea_from_dataframe(
         .unique(subset=["symbol"], keep="first", maintain_order=True)
     )
 
-    # Sort by score desc and drop duplicate symbols keeping highest score (originals win over zeros)
-    # pddf = pddf.sort_values("globalScore", ascending=False)
-    # pddf = pddf.drop_duplicates(subset=["symbol"], keep="first")
-
     res_df = blitzgsea(df.to_pandas(), library_sets, processes=processes)
-    logger.info(f"GSEA completed, results shape: {res_df.shape}")
-
     res_df = clean_df(res_df, contains_braces, gmt_file, id_to_genes, hierarchy_file)
 
     # Store in cache
     with _gsea_cache_lock:
-        _gsea_cache[cache_key] = (res_df.copy(), overlap_stats.copy())
+        _gsea_cache[cache_key] = (res_df, overlap_stats)
         if len(_gsea_cache) > _GSEA_CACHE_MAX_SIZE:
             _gsea_cache.popitem(last=False)
 
     return res_df, overlap_stats
 
 
-def run_gsea(input_tsv=None, gmt_name=None, processes=4):
+def run_gsea(input_tsv: Path, gmt_name: str, processes=4):
     """
     Run GSEA from a TSV file path (backward compatible).
 
@@ -418,17 +427,15 @@ def run_gsea(input_tsv=None, gmt_name=None, processes=4):
     Raises:
         ValueError: If gmt_name is invalid or file is missing required columns
     """
-    if not input_tsv:
+    if not input_tsv.is_file():
         raise ValueError("input_tsv parameter is required")
 
-    input_tsv = Path(input_tsv)
-
     # Load input file
-    df = pd.read_csv(input_tsv, sep="\t")
+    df = pl.read_csv(input_tsv, separator="\t")
 
     # Handle unnamed columns (legacy support)
     if set(df.columns) == set(range(len(df.columns))):
-        df = df.rename(columns={0: "symbol", 1: "globalScore"})
+        df = df.rename({"0": "symbol", "1": "globalScore"})
 
     # Validate and run GSEA using the DataFrame-based function
     return run_gsea_from_dataframe(df, gmt_name, processes)

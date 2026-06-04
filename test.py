@@ -1,7 +1,5 @@
 import json
 
-import numpy as np
-import pandas as pd
 import polars as pl
 from loguru import logger
 
@@ -21,15 +19,17 @@ def main(x=10):
             j, "Reactome/ReactomePathways_2025"
         )
 
-        res_df = res_df[res_df["NES"] > 0].copy()
+        # Filter results
+        res_df = res_df.filter(pl.col("NES") > 0)
 
         # Replace NaN/Inf with JSON-safe values
-        res_df = res_df.replace([np.inf, -np.inf], None)
-        res_df = res_df.where(pd.notna(res_df), None)
-
+        # res_df = res_df.with_columns(pl.col("*").replace({np.inf: None, -np.inf: None}))
+        # res_df = res_df.fill_nan(None)
+        # res_df = res_df.replace([np.inf, -np.inf], None)
+        # res_df = res_df.where(pd.notna(res_df), None)
         x = {
             "input_overlap": input_overlap,
-            "results": res_df.to_dict(orient="records"),
+            "results": res_df.to_dict(),
         }
         assert x["input_overlap"] == correct["input_overlap"]
 
