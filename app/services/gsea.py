@@ -262,6 +262,10 @@ def clean_df(
     return res_df
 
 
+def blitzgsea(df: pd.DataFrame, library_sets: dict, processes: int = 4) -> pd.DataFrame:
+    return blitz.gsea(df, library_sets, processes=processes).reset_index(names="Term")
+
+
 def run_gsea_from_dataframe(
     df: pl.DataFrame, gmt_name: str, processes: int = 4
 ) -> tuple[pd.DataFrame, dict]:
@@ -377,18 +381,15 @@ def run_gsea_from_dataframe(
     approved_symbols = get_approved_symbols()
     df: pl.DataFrame = (
         df.filter(pl.col("symbol").is_in(approved_symbols))
-        .sort("globalScore", descending=True)
-        .unique(subset=["symbol"], keep="first")
+        .sort(pl.col("globalScore"), descending=True, nulls_last=True)
+        .unique(subset=["symbol"], keep="first", maintain_order=True)
     )
-    pddf = df.to_pandas()
 
     # Sort by score desc and drop duplicate symbols keeping highest score (originals win over zeros)
-    # df = df.sort_values("globalScore", ascending=False)
-    # df = df.drop_duplicates(subset=["symbol"], keep="first")
+    # pddf = pddf.sort_values("globalScore", ascending=False)
+    # pddf = pddf.drop_duplicates(subset=["symbol"], keep="first")
 
-    res_df = blitz.gsea(pddf, library_sets, processes=processes).reset_index(
-        names="Term"
-    )
+    res_df = blitzgsea(df.to_pandas(), library_sets, processes=processes)
     logger.info(f"GSEA completed, results shape: {res_df.shape}")
 
     res_df = clean_df(res_df, contains_braces, gmt_file, id_to_genes, hierarchy_file)

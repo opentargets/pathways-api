@@ -29,6 +29,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "memray>=1.19.3",
     "py-spy>=0.4.2",
 ]
 lint = ["ruff>=0.7.1"]
