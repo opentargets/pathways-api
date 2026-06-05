@@ -1,12 +1,15 @@
-from fastapi import APIRouter, UploadFile, File, Query, HTTPException
-from typing import Literal
-from app.services.gsea import run_gsea_from_dataframe, available_gmt_files
-from app.models.gsea import GseaJsonRequest
-from app.utils.gsea_utils import validate_gsea_dataframe, handle_gsea_error
-import tempfile
-import pandas as pd
 import os
+import tempfile
+from typing import Literal
+
 import numpy as np
+import pandas as pd
+import polars as pl
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
+
+from app.models.gsea import GseaJsonRequest
+from app.services.gsea import GSEA, available_gmt_files, run_gsea_from_dataframe
+from app.utils.gsea_utils import handle_gsea_error, validate_gsea_dataframe
 
 router = APIRouter()
 
@@ -24,9 +27,11 @@ def analyze_gsea_from_file(
         description="TSV file containing at least 2 columns: 'symbol' and 'globalScore'",
     ),
     gmt_name: str = Query(..., description="GMT library name (without .gmt extension)"),
-    analysis_direction: Literal["one_sided_positive", "one_sided_negative", "two_sided"] = Query(
+    analysis_direction: Literal[
+        "one_sided_positive", "one_sided_negative", "two_sided"
+    ] = Query(
         default="one_sided_positive",
-        description="Analysis direction: 'one_sided_positive' filters NES > 0, 'one_sided_negative' filters NES < 0, 'two_sided' returns all results"
+        description="Analysis direction: 'one_sided_positive' filters NES > 0, 'one_sided_negative' filters NES < 0, 'two_sided' returns all results",
     ),
 ):
     """
@@ -84,11 +89,14 @@ def analyze_gsea_from_file(
 
 @router.post("/gsea/analyze/json")
 def analyze_gsea_from_json(
-    request: GseaJsonRequest,
+    request: Request,
+    gsea_input: GseaJsonRequest,
     gmt_name: str = Query(..., description="GMT library name (without .gmt extension)"),
-    analysis_direction: Literal["one_sided_positive", "one_sided_negative", "two_sided"] = Query(
+    analysis_direction: Literal[
+        "one_sided_positive", "one_sided_negative", "two_sided"
+    ] = Query(
         default="one_sided_positive",
-        description="Analysis direction: 'one_sided_positive' filters NES > 0, 'one_sided_negative' filters NES < 0, 'two_sided' returns all results"
+        description="Analysis direction: 'one_sided_positive' filters NES > 0, 'one_sided_negative' filters NES < 0, 'two_sided' returns all results",
     ),
 ):
     """
@@ -106,18 +114,18 @@ def analyze_gsea_from_json(
             ]
         }
     """
+    approved_symbols = request.app.state.approved_symbols
     try:
         # Convert request to DataFrame
         genes_data = [
-            {"symbol": g.symbol, "globalScore": g.globalScore} for g in request.genes
+            {"symbol": g.symbol, "globalScore": g.globalScore} for g in gsea_input.genes
         ]
-        df = pd.DataFrame(genes_data)
+        df = pl.DataFrame(genes_data)
 
         # Validate DataFrame (should already be valid via Pydantic, but double-check)
         df = validate_gsea_dataframe(df)
-
-        # Run GSEA directly (no file I/O needed!)
-        res_df, input_overlap = run_gsea_from_dataframe(df, gmt_name)
+        gsea = GSEA(df, gmt_name, approved_symbols, analysis_direction)
+        res_df, input_overlap = gsea.run()
 
     except HTTPException:
         raise

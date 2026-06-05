@@ -3,6 +3,7 @@ import json
 import threading
 from collections import OrderedDict
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import blitzgsea as blitz
@@ -13,21 +14,36 @@ from loguru import logger
 
 
 class GSEA:
-    def __init__(self, df: pl.DataFrame):
-        self.df = df
+    def __init__(
+        self,
+        df: pl.DataFrame,
+        gmt_name: str,
+        approved_symbols: set[str],
+        analysis_direction: str = "one_sided_positive",
+        processes: int = 4,
+    ):
+        self._df = df
+        self._gmt_name = gmt_name
+        self._approved_symbols = approved_symbols
+        self._analysis_direction = analysis_direction
+        self._processes = processes
 
-    def validated(self) -> pl.DataFrame:
+    def run(self) -> pd.DataFrame:
         pass
 
-    def analyse(self, gmt_name: str, processes: int = 4) -> pd.DataFrame:
-        pass
+    def _compute_cache_key(self, gmt_name: str) -> str:
+        sorted_genes = (
+            self._df.select(["symbol", "globalScore"]).sort(by="symbol").to_dicts()
+        )
+        key_data = json.dumps({gmt_name: sorted_genes})
+        return hashlib.sha256(key_data.encode()).hexdigest()
 
 
-MIN_GENE_COL_IDX = 2
+MIN_GENE_COL_IDX = 1
 
 # --- Caches ---
-_approved_symbols_cache: set[str] | None = None
-_approved_symbols_lock = threading.Lock()
+# _approved_symbols_cache: set[str] | None = None
+# _approved_symbols_lock = threading.Lock()
 
 _GSEA_CACHE_MAX_SIZE = 50
 _gsea_cache: OrderedDict[str, tuple[pl.DataFrame, dict]] = OrderedDict()
@@ -37,7 +53,12 @@ _gsea_cache_lock = threading.Lock()
 def _compute_cache_key(df: pl.DataFrame, gmt_name: str) -> str:
     sorted_genes = df.select(["symbol", "globalScore"]).sort(by="symbol").to_dicts()
     key_data = json.dumps({gmt_name: sorted_genes})
-    return hashlib.sha256(key_data.encode()).hexdigest()
+    return _sha256(key_data.encode())
+
+
+@lru_cache(maxsize=128)
+def _sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
 
 
 # def _compute_cache_key(df: pd.DataFrame, gmt_name: str) -> str:
@@ -49,36 +70,38 @@ def _compute_cache_key(df: pl.DataFrame, gmt_name: str) -> str:
 #     return hashlib.sha256(key_data.encode()).hexdigest()
 
 
+@lru_cache(maxsize=1)
 def get_approved_symbols() -> set[str]:
     """
     Read approvedSymbol column from Open Targets target parquet files in GCS using gcsfs.
     Returns a set of approved gene symbols. Result is cached for the lifetime of the process.
     """
-    global _approved_symbols_cache
-    with _approved_symbols_lock:
-        # Double-check after acquiring lock
-        if _approved_symbols_cache is not None:
-            return _approved_symbols_cache
+    # global _approved_symbols_cache
+    # with _approved_symbols_lock:
+    #     # Double-check after acquiring lock
+    #     if _approved_symbols_cache is not None:
+    #         return _approved_symbols_cache
 
-        with duckdb.connect(
-            Path(__file__).resolve().parents[1] / "data" / "pathways.db"
-        ) as con:
-            approved_symbols = set(
-                con.sql("SELECT * FROM approved_symbols")
-                .pl()
-                .select("approvedSymbol")
-                .to_series()
-                .to_list()
-            )
-        logger.info("extracting approved symbols")
-        logger.info(
-            "Fetched {} approved symbols from GCS (cached for instance lifetime)",
-            len(approved_symbols),
+    with duckdb.connect(
+        Path(__file__).resolve().parents[1] / "data" / "pathways.db"
+    ) as con:
+        approved_symbols = set(
+            con.sql("SELECT * FROM approved_symbols")
+            .pl()
+            .select("approvedSymbol")
+            .to_series()
+            .to_list()
         )
-        _approved_symbols_cache = approved_symbols
-        return approved_symbols
+    logger.info("extracting approved symbols")
+    logger.info(
+        "Fetched {} approved symbols from GCS (cached for instance lifetime)",
+        len(approved_symbols),
+    )
+    # _approved_symbols_cache = approved_symbols
+    return approved_symbols
 
 
+@lru_cache(maxsize=128)
 def load_custom_gmt(path: Path) -> dict[str, list[str]]:
     with path.open("r") as f:
         return {
@@ -94,6 +117,7 @@ class GMTFiles:
     hierarchy: Path | None = None
 
 
+@lru_cache(maxsize=128)
 def available_gmt_files() -> dict[str, GMTFiles]:
     """
     Return available GMT libraries as:
@@ -131,6 +155,7 @@ def available_gmt_files() -> dict[str, GMTFiles]:
     return libraries
 
 
+@lru_cache(maxsize=128)
 def _contains_braces(gmt_file: Path) -> bool:
     with gmt_file.open("r") as f:
         if "{" and "}" in f.read():
@@ -138,6 +163,7 @@ def _contains_braces(gmt_file: Path) -> bool:
     return False
 
 
+@lru_cache(maxsize=128)
 def get_gmt_file(gmt_name: str) -> GMTFiles:
     gmt_parent = available_gmt_files().get(gmt_name)
     if gmt_parent:
