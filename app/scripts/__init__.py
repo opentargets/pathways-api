@@ -1,2 +1,3 @@
-# Makes `app.scripts` a regular package
+from app.scripts.etl import main
 
+__all__ = ["main"]

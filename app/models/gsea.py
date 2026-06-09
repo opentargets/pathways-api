@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field, field_validator
+from enum import Enum
 from typing import List
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class Gene(BaseModel):
@@ -22,3 +24,11 @@ class GseaJsonRequest(BaseModel):
         if not v or len(v) == 0:
             raise ValueError("Genes list cannot be empty")
         return v
+
+
+class GeneSetLibraryEnum(str, Enum):
+    GOBiologicalProcess2025 = "go_biological_process_2025"
+    GOMolecularFunction2025 = "go_molecular_function_2025"
+    GOCellularComponent2025 = "go_cellular_component_2025"
+    Reactome2025 = "reactome_2025"
+    ChEMBLTargetClass = "chembl_target_class"
