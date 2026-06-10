@@ -5,31 +5,32 @@ import duckdb
 import polars as pl
 from loguru import logger
 
+from app.config import get_config
 from app.models.gsea import GeneSetLibraryEnum
 
 
 class ETLClient:
-    BASE_DIR = Path(__file__).resolve().parents[1]  # app/
-    DATA_DIR = BASE_DIR / "data"
-    GMT_DIR = DATA_DIR / "gmt"
-    MIN_GENE_COL_IDX = 1
-    DATABASE_PATH = BASE_DIR / "pathways.db"
-
     def __init__(self, gcs_path: str, overwrite: bool = False):
         self.gcs_path = gcs_path
         self.overwrite = overwrite
+        self.config = get_config()
 
-    def run(self):
-        with duckdb.connect(self.DATABASE_PATH) as con:
+    def run(self) -> None:
+        """
+        Runs the ETL process to load data into the database.
+        """
+        with duckdb.connect(self.config.DATABASE_PATH) as con:
             if self.overwrite:
+                logger.info("Dropping existing tables...")
                 con.execute("DROP TABLE IF EXISTS hierarchy")
                 con.execute("DROP TABLE IF EXISTS approved_symbols")
                 con.execute("DROP TABLE IF EXISTS libraries")
                 con.execute("DROP TABLE IF EXISTS background")
+            logger.info("Starting ETL process...")
             self._approved_symbols_etl(con)
             self._library_gene_lists_etl(con)
 
-    def _approved_symbols_etl(self, con):
+    def _approved_symbols_etl(self, con) -> None:
         logger.info("Loading approved symbols from GCS...")
         df = pl.read_parquet(self.gcs_path, columns=["approvedSymbol"])
         con.execute(
@@ -49,9 +50,9 @@ class ETLClient:
             f.seek(0)  # reset to start of file
             for line in f:
                 parts = line.rstrip("\n").split("\t")
-                if len(parts) > self.MIN_GENE_COL_IDX:
+                if len(parts) > self.config.MIN_GENE_COL_IDX:
                     term = parts[0]
-                    genes = parts[self.MIN_GENE_COL_IDX :]
+                    genes = parts[self.config.MIN_GENE_COL_IDX :]
                     if contains_braces and "{" in term and "}" in term:
                         start = term.find("{") + 1
                         end = term.find("}", start)
@@ -68,9 +69,9 @@ class ETLClient:
         with gmt_path.open("r") as f:
             for line in f:
                 parts = line.rstrip("\n").split("\t")
-                if len(parts) > self.MIN_GENE_COL_IDX:
+                if len(parts) > self.config.MIN_GENE_COL_IDX:
                     # All tokens after the second column are gene symbols
-                    for token in parts[self.MIN_GENE_COL_IDX :]:
+                    for token in parts[self.config.MIN_GENE_COL_IDX :]:
                         stripped = token.strip()
                         if stripped:
                             genes.add(stripped)
@@ -130,18 +131,16 @@ class ETLClient:
 
     def _library_gene_lists_etl(self, con: duckdb.DuckDBPyConnection) -> None:
         """
-        For each .gmt file under each subdirectory in app/data/gmt, generate a
-        background gene list named `<input_stem>{suffix}` in the same directory.
-        Returns the list of paths that were written/updated.
+        For each library, load the gene sets and hierarchy from the corresponding .gmt file.
         """
 
         for library in GeneSetLibraryEnum:
-            gmt_path = self.GMT_DIR / library.value / "gene_sets.gmt"
+            gmt_path = self.config.GMT_DIR / library.value / "gene_sets.gmt"
             if not gmt_path.exists():
                 raise FileNotFoundError(f"Missing .gmt file for library: {library}")
             self._load_background_for_gmt(con, library, gmt_path)
             self._load_gene_sets(con, library, gmt_path)
-            hierarchy_path = self.GMT_DIR / library.value / "hierarchy.tsv"
+            hierarchy_path = self.config.GMT_DIR / library.value / "hierarchy.tsv"
             if not hierarchy_path.exists():
                 raise FileNotFoundError(
                     f"Missing hierarchy file for library: {library}"
@@ -149,7 +148,9 @@ class ETLClient:
             self._load_hierarchy(con, library, hierarchy_path)
 
 
-@click.command()
+@click.command(
+    help="Run the ETL process to load gene set libraries and hierarchy from .gmt files into the database."
+)
 @click.option(
     "--gcs-path",
     default="gs://open-targets-pre-data-releases/25.09/output/target/",

@@ -136,3 +136,12 @@ artifacts/
 
 # Build artifacts
 build/
+
+# data
+app/data/gmt/
+
+# test
+app/data/test*
+
+# scripts
+app/scripts/

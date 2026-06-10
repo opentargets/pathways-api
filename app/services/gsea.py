@@ -12,24 +12,45 @@ import pandas as pd
 import polars as pl
 from loguru import logger
 
+from app.models import GeneSetLibraryEnum, GseaJsonResponse
+from app.models.gsea import GSEADirectionEnum
+
+
+class GSEAException(Exception):
+    """Custom exception for GSEA errors."""
+
 
 class GSEA:
     def __init__(
         self,
         df: pl.DataFrame,
-        gmt_name: str,
-        approved_symbols: set[str],
-        analysis_direction: str = "one_sided_positive",
-        processes: int = 4,
     ):
         self._df = df
-        self._gmt_name = gmt_name
-        self._approved_symbols = approved_symbols
-        self._analysis_direction = analysis_direction
-        self._processes = processes
 
-    def run(self) -> pd.DataFrame:
-        pass
+    def normalise(self) -> pl.DataFrame:
+        """
+        Normalise a DataFrame for GSEA analysis.
+
+        Args:
+            df: Input DataFrame to validate
+
+        Returns:
+            Normalized DataFrame with 'symbol' and 'globalScore' columns, sorted by score
+        """
+        # Extract only required columns and sort
+        return self._df.select(["symbol", "globalScore"]).sort(
+            "globalScore", descending=True
+        )
+
+    def run(
+        self,
+        gmt_name: GeneSetLibraryEnum,
+        approved_symbols: set[str],
+        analysis_direction: GSEADirectionEnum = GSEADirectionEnum.OneSidedPositive,
+        processes: int = 4,
+    ) -> GseaJsonResponse:
+        normalised_df = self.normalise()
+        
 
     def _compute_cache_key(self, gmt_name: str) -> str:
         sorted_genes = (
@@ -70,21 +91,34 @@ def _sha256(data: bytes) -> str:
 #     return hashlib.sha256(key_data.encode()).hexdigest()
 
 
-@lru_cache(maxsize=1)
-def get_approved_symbols() -> set[str]:
-    """
-    Read approvedSymbol column from Open Targets target parquet files in GCS using gcsfs.
-    Returns a set of approved gene symbols. Result is cached for the lifetime of the process.
-    """
-    # global _approved_symbols_cache
-    # with _approved_symbols_lock:
-    #     # Double-check after acquiring lock
-    #     if _approved_symbols_cache is not None:
-    #         return _approved_symbols_cache
+# class AppStateData:
+#     BASE_DIR = Path(__file__).resolve().parents[1]
+#     DATABASE_PATH = BASE_DIR / "data" / "pathways.db"
 
-    with duckdb.connect(
-        Path(__file__).resolve().parents[1] / "data" / "pathways.db"
-    ) as con:
+#     def __init__(self):
+#         self.approved_symbols: set[str] = self._load_approved_symbols()
+#         self.background_symbols: set[str] = self._load_background_symbols()
+#         self.gene_set_library: dict[str, list[str]] = self._load_gene_set_library()
+#         self.hierarchy: pl.DataFrame = self._load_hierarchy()
+
+#     def _load_approved_symbols(self) -> set[str]:
+#         with duckdb.connect(self.DATABASE_PATH) as con:
+#             return set(
+#                 con.sql("SELECT * FROM approved_symbols")
+#                 .pl()
+#                 .select("approvedSymbol")
+#                 .to_series()
+#                 .to_list()
+#             )
+
+#     def _load_background_symbols(self) -> set[str]:
+
+
+def get_approved_symbols(database_path: Path) -> set[str]:
+    """
+    Returns a set of approved gene symbols.
+    """
+    with duckdb.connect(database_path) as con:
         approved_symbols = set(
             con.sql("SELECT * FROM approved_symbols")
             .pl()
@@ -92,13 +126,11 @@ def get_approved_symbols() -> set[str]:
             .to_series()
             .to_list()
         )
-    logger.info("extracting approved symbols")
-    logger.info(
-        "Fetched {} approved symbols from GCS (cached for instance lifetime)",
-        len(approved_symbols),
-    )
-    # _approved_symbols_cache = approved_symbols
     return approved_symbols
+
+
+def get_libraries() -> list[str]:
+    return [lib.value for lib in GeneSetLibraryEnum]
 
 
 @lru_cache(maxsize=128)
@@ -308,8 +340,11 @@ def blitzgsea(df: pd.DataFrame, library_sets: dict, processes: int = 4) -> pl.Da
 
 
 def run_gsea_from_dataframe(
-    df: pl.DataFrame, gmt_name: str, processes: int = 4
-) -> tuple[pl.DataFrame, dict]:
+    df: pl.DataFrame,
+    gmt_name: str,
+    analysis_direction: GSEADirectionEnum = GSEADirectionEnum.OneSidedPositive,
+    processes: int = 4,
+) -> GseaJsonResponse:
     """
     Run GSEA using a DataFrame directly (no file required).
     Results are cached by input hash (genes + gmt_name) to avoid redundant computation.
@@ -435,7 +470,17 @@ def run_gsea_from_dataframe(
         if len(_gsea_cache) > _GSEA_CACHE_MAX_SIZE:
             _gsea_cache.popitem(last=False)
 
-    return res_df, overlap_stats
+    # Filter by NES based on analysis direction
+    if analysis_direction is GSEADirectionEnum.OneSidedPositive:
+        res_df = res_df.filter(pl.col("NES") > 0)
+    elif analysis_direction is GSEADirectionEnum.OneSidedNegative:
+        res_df = res_df.filter(pl.col("NES") < 0)
+    res_df = res_df.fill_nan(None)
+    results = GseaJsonResponse(
+        results=res_df.to_dicts(),
+        input_overlap=overlap_stats,
+    )
+    return results
 
 
 def run_gsea(input_tsv: Path, gmt_name: str, processes=4):
@@ -464,4 +509,4 @@ def run_gsea(input_tsv: Path, gmt_name: str, processes=4):
         df = df.rename({"0": "symbol", "1": "globalScore"})
 
     # Validate and run GSEA using the DataFrame-based function
-    return run_gsea_from_dataframe(df, gmt_name, processes)
+    return run_gsea_from_dataframe(df, gmt_name, processes=processes)

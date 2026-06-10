@@ -5,40 +5,19 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-
-# import logging
-from loguru import logger
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 
 from app.config import get_config
 from app.routers import gsea
-from app.scripts.prepare_gene_lists import generate_all_library_gene_lists
 from app.services.gsea import get_approved_symbols
 
-# Configure logging
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-# )
-# logger = logging.getLogger(__name__)
 config = get_config()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:
-        updated = generate_all_library_gene_lists()
-        if updated:
-            logger.info(
-                "Prepared gene lists for libraries: %s",
-                ", ".join(str(p) for p in updated),
-            )
-        else:
-            logger.info("Gene lists already up-to-date; no changes.")
-    except Exception as exc:  # noqa: BLE001
-        logger.exception("Failed to prepare gene lists on startup: %s", exc)
-    app.state.approved_symbols = get_approved_symbols()
+    app.state.approved_symbols = get_approved_symbols(config.DATABASE_PATH)
     yield
 
 
@@ -71,22 +50,6 @@ app.include_router(gsea.router, prefix="/api", tags=["GSEA"])
 
 # Mount static files for the React app
 app.mount("/assets", StaticFiles(directory="./ui/dist/assets"), name="assets")
-
-
-# Prepare per-library gene lists from GMTs on startup (idempotent and fast if up-to-date)
-# @app.on_event("startup")
-# async def prepare_gene_lists_startup() -> None:
-#     try:
-#         updated = generate_all_library_gene_lists()
-#         if updated:
-#             logger.info(
-#                 "Prepared gene lists for libraries: %s",
-#                 ", ".join(str(p) for p in updated),
-#             )
-#         else:
-#             logger.info("Gene lists already up-to-date; no changes.")
-#     except Exception as exc:  # noqa: BLE001
-#         logger.exception("Failed to prepare gene lists on startup: %s", exc)
 
 
 @app.get("/")
