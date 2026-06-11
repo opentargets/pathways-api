@@ -1,4 +1,5 @@
 import os
+from functools import lru_cache
 from pathlib import Path
 
 
@@ -36,6 +37,7 @@ class ProductionConfig(BaseConfig):
     )
 
 
+@lru_cache
 def get_config():
     # Check for DEBUG env var first, then APP_ENV
     if os.getenv("DEBUG", "").lower() == "true":

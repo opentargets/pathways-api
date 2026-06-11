@@ -17,6 +17,7 @@ config = get_config()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.config = config
     app.state.approved_symbols = get_approved_symbols(config.DATABASE_PATH)
     yield
 

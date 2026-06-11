@@ -58,16 +58,19 @@ class GseaResult(BaseModel):
     sidaks_p_value: float = Field(
         ..., description="Sidak's p-value", serialization_alias="Sidak's p-value"
     )
-    input_gene_count: int = Field(
+    geneset_size: int = Field(
         ...,
         description="Number of input genes",
         serialization_alias="Number of input genes",
     )
-    leading_edge_genes: list[str] = Field(
+    leading_edge: list[str] = Field(
         ..., description="Leading edge genes", serialization_alias="Leading edge genes"
     )
     pathway_size: int = Field(
         ..., description="Pathway size", serialization_alias="Pathway size"
+    )
+    pathway_genes: list[str] = Field(
+        ..., description="Pathway genes", serialization_alias="Pathway genes"
     )
     parent_pathway: str = Field(
         ..., description="Parent pathway", serialization_alias="Parent pathway"

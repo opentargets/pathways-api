@@ -1,15 +1,9 @@
 """Service layer for the Pathways API."""
 
-from app.services.gsea import (
-    available_gmt_files,
-    run_gsea,
-    run_gsea_from_dataframe,
-    load_custom_gmt,
-)
+from app.services.gsea import GSEA, get_approved_symbols, get_libraries
 
 __all__ = [
-    "available_gmt_files",
-    "run_gsea",
-    "run_gsea_from_dataframe",
-    "load_custom_gmt",
+    "GSEA",
+    "get_approved_symbols",
+    "get_libraries",
 ]

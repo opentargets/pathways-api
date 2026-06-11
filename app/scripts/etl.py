@@ -26,6 +26,7 @@ class ETLClient:
                 con.execute("DROP TABLE IF EXISTS approved_symbols")
                 con.execute("DROP TABLE IF EXISTS libraries")
                 con.execute("DROP TABLE IF EXISTS background")
+                con.execute("DROP TABLE IF EXISTS id_pathway_mapping")
             logger.info("Starting ETL process...")
             self._approved_symbols_etl(con)
             self._library_gene_lists_etl(con)
@@ -33,6 +34,7 @@ class ETLClient:
     def _approved_symbols_etl(self, con) -> None:
         logger.info("Loading approved symbols from GCS...")
         df = pl.read_parquet(self.gcs_path, columns=["approvedSymbol"])
+        df = df.select(pl.col("approvedSymbol")).unique()
         con.execute(
             "CREATE TABLE IF NOT EXISTS approved_symbols (approvedSymbol VARCHAR)"
         )
@@ -111,6 +113,45 @@ class ETLClient:
         con.execute("INSERT INTO libraries VALUES (?, ?)", (library.value, gene_sets))
         con.execute("CREATE INDEX IF NOT EXISTS idx_libraries ON libraries (library)")
 
+    def _load_id_pathway_mapping(
+        self,
+        con: duckdb.DuckDBPyConnection,
+        library: GeneSetLibraryEnum,
+        gmt_path: Path,
+    ) -> None:
+        with gmt_path.open("r") as f:
+            contains_braces = self._contains_braces(f.read())
+        # read first column:
+        res_df = pl.read_csv(
+            gmt_path,
+            separator="\t",
+            has_header=False,
+            columns=[0],
+        )
+        if contains_braces:
+            term_series = res_df["column_1"]
+            res_df = res_df.with_columns(
+                id=term_series.str.extract(r"\{([^}]+)\}").fill_null(""),
+                pathway=term_series.str.replace(r"\s*\{[^}]+\}", "").str.strip_chars(),
+            )
+        else:
+            res_df = res_df.with_columns(
+                id=res_df["column_1"], pathway=res_df["column_1"]
+            )
+
+        res_df = res_df.with_columns(library=pl.lit(library.value))
+
+        # load to table
+        con.execute(
+            "CREATE TABLE IF NOT EXISTS id_pathway_mapping (library VARCHAR, id VARCHAR, pathway VARCHAR)"
+        )
+        con.execute(
+            "INSERT INTO id_pathway_mapping SELECT library, id, pathway FROM res_df"
+        )
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS idx_id_pathway_mapping ON id_pathway_mapping (library)"
+        )
+
     def _load_hierarchy(
         self,
         con: duckdb.DuckDBPyConnection,
@@ -139,6 +180,7 @@ class ETLClient:
             if not gmt_path.exists():
                 raise FileNotFoundError(f"Missing .gmt file for library: {library}")
             self._load_background_for_gmt(con, library, gmt_path)
+            self._load_id_pathway_mapping(con, library, gmt_path)
             self._load_gene_sets(con, library, gmt_path)
             hierarchy_path = self.config.GMT_DIR / library.value / "hierarchy.tsv"
             if not hierarchy_path.exists():
