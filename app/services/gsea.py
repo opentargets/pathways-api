@@ -196,7 +196,7 @@ class GSEA:
 
         df = df.with_columns(
             [
-                pl.col(col).fill_nan(val)
+                pl.col(col).fill_null(val)
                 for col, val in self.FLOAT_DEFAULTS.items()
                 if col in df.columns
             ]
