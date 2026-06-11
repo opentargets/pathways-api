@@ -51,6 +51,7 @@ class GSEA:
         if validate:
             if not self._is_valid():
                 raise GSEAException("Input data is not valid")
+        self._input_symbols_set = self._symbols_as_set(self._df)
 
     def _is_valid(self) -> bool:
         try:
@@ -81,9 +82,8 @@ class GSEA:
     ) -> pl.DataFrame:
         """Runs GSEA analysis on the input DataFrame and returns the results as dataframe"""
         self._df = self.normalise()
-        symbols = self._input_symbols()
         background_genes = get_background_genes(self._database_connection, gmt_name)
-        missing_genes = symbols - background_genes
+        missing_genes = background_genes - self._input_symbols_set
         if missing_genes:
             self._extend_df_with_missing_genes(missing_genes)
         self._filter_approved_genes(approved_symbols)
@@ -119,9 +119,8 @@ class GSEA:
         background_genes: set[str],
     ) -> OverlapStats:
         """Returns the overlap statistics for the input genes against the background genes."""
-        symbols = set(self._df.select(pl.col("symbol")).to_series())
-        total_input = len(symbols)
-        overlap_count = len(symbols & background_genes)
+        total_input = len(self._input_symbols_set)
+        overlap_count = len(self._input_symbols_set & background_genes)
         overlap_percent = round(
             (overlap_count / total_input * 100) if total_input else 0.0, 2
         )
@@ -233,10 +232,11 @@ class GSEA:
         )
         self._df = pl.concat([self._df, background_df])
 
-    def _input_symbols(self) -> set[str]:
+    @staticmethod
+    def _symbols_as_set(df: pl.DataFrame) -> set[str]:
         """Returns the unique set of input gene symbols from the DataFrame."""
         return set(
-            self._df.select(pl.col("symbol").str.strip_chars()).drop_nulls().to_series()
+            df.select(pl.col("symbol").str.strip_chars()).drop_nulls().to_series()
         )
 
     # def _compute_cache_key(self, gmt_name: str) -> str:
