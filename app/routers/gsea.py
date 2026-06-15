@@ -22,7 +22,7 @@ async def list_gmt_files() -> list[str]:
 
 
 @router.post("/gsea/analyze/file", response_model=GseaJsonResponse)
-def analyze_gsea_from_file(
+async def analyze_gsea_from_file(
     request: Request,
     tsv_file: UploadFile = File(
         ...,
@@ -64,7 +64,7 @@ def analyze_gsea_from_file(
 
 
 @router.post("/gsea/analyze/json", response_model=GseaJsonResponse)
-def analyze_gsea_from_json(
+async def analyze_gsea_from_json(
     request: Request,
     gsea_input: GseaJsonRequest,
     gmt_name: GeneSetLibraryEnum = Query(..., description="GMT library name"),
