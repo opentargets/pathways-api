@@ -1,5 +1,13 @@
+import duckdb
 import polars as pl
 from fastapi import HTTPException
+
+from app.config import get_config
+
+
+def database_connection() -> duckdb.DuckDBPyConnection:
+    config = get_config()
+    return duckdb.connect(config.DATABASE_PATH)
 
 
 def validate_gsea_dataframe(df: pl.DataFrame) -> pl.DataFrame:

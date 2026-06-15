@@ -90,7 +90,7 @@ def analyze_gsea_from_json(
     """
     try:
         df = pl.DataFrame(gsea_input.genes)
-        gsea = GSEA(df, request.app.state.config.DATABASE_PATH, validate=False)
+        gsea = GSEA(df, request.app.state.db_connection, validate=False)
         return gsea.results(
             gmt_name, request.app.state.approved_symbols, analysis_direction
         )

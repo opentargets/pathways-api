@@ -355,11 +355,13 @@ def get_approved_symbols(database_connection: duckdb.DuckDBPyConnection) -> pl.S
     """
     Returns a set of approved gene symbols.
     """
+    logger.info("Loading approved symbols")
     approved_symbols = (
         database_connection.execute("SELECT approvedSymbol FROM approved_symbols")
         .pl()
         .to_series()
     )
+    logger.info(f"Loaded {len(approved_symbols)} approved symbols")
     return approved_symbols
 
 

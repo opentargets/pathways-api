@@ -11,6 +11,7 @@ from starlette.responses import JSONResponse
 from app.config import get_config
 from app.routers import gsea
 from app.services.gsea import get_approved_symbols
+from app.utils.gsea_utils import database_connection
 
 config = get_config()
 
@@ -18,8 +19,10 @@ config = get_config()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.config = config
-    app.state.approved_symbols = get_approved_symbols(config.DATABASE_PATH)
+    app.state.db_connection = database_connection()
+    app.state.approved_symbols = get_approved_symbols(database_connection())
     yield
+    app.state.db_connection.close()
 
 
 app = FastAPI(debug=config.DEBUG, lifespan=lifespan)
