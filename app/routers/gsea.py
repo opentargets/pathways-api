@@ -27,7 +27,7 @@ async def analyze_gsea_from_file(
     tsv_file: UploadFile = File(
         ...,
         description="TSV file containing at least 2 columns: 'symbol' and 'globalScore'",
-        regex=r"\.tsv$",
+        pattern=r"\.tsv$",
     ),
     gmt_name: GeneSetLibraryEnum = Query(..., description="GMT library name"),
     analysis_direction: GSEADirectionEnum = Query(
