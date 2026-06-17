@@ -138,10 +138,10 @@ artifacts/
 build/
 
 # data
-app/data/gmt/
-
-# test
-app/data/test*
+app/data/
 
 # scripts
 app/scripts/
+
+# test
+test*
