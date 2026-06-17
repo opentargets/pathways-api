@@ -2,14 +2,15 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
+    branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
   workflow_call:
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: opentargets/pathways-api
+  REPO: ${{ github.event.repository.name }}
 
 jobs:
   build-and-image:
@@ -18,89 +19,120 @@ jobs:
       contents: read
       packages: write
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: prep env
+        run: |
+          echo "TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ui/package-lock.json
 
+      - name: Install frontend dependencies
+        run: |
+          cd ui
+          npm ci
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: ui/package-lock.json
+      - name: Build frontend
+        run: |
+          cd ui
+          npm run build
 
-    - name: Install frontend dependencies
-      run: |
-        cd ui
-        npm ci
+      - name: Create bundle directory
+        run: |
+          mkdir -p bundle
+          # Copy app directory and rename files with colons
+          cp -r app bundle/
+          # Rename files with colons to make them artifact-compatible
+          find bundle/app/data -name "*:*" -exec sh -c 'mv "$1" "$(echo "$1" | tr ":" "_")"' _ {} \;
+          # Copy other essential files
+          cp -r ui bundle/
+          cp pyproject.toml bundle/
+          cp uv.lock bundle/
+          cp Dockerfile bundle/
+          cp .dockerignore bundle/
+          cp docker-compose.yml bundle/
+          cp nginx.conf bundle/
+          cp Makefile bundle/
+          cp README.md bundle/
 
-    - name: Build frontend
-      run: |
-        cd ui
-        npm run build
+          # Debug: Show what's in the bundle
+          echo "Bundle contents:"
+          ls -la bundle/
+          echo "UI directory contents:"
+          ls -la bundle/ui/
+          echo "UI dist directory contents:"
+          ls -la bundle/ui/dist/ || echo "ui/dist not found"
 
-    - name: Create bundle directory
-      run: |
-        mkdir -p bundle
-        # Copy app directory and rename files with colons
-        cp -r app bundle/
-        # Rename files with colons to make them artifact-compatible
-        find bundle/app/data -name "*:*" -exec sh -c 'mv "$1" "$(echo "$1" | tr ":" "_")"' _ {} \;
-        # Copy other essential files
-        cp -r ui bundle/
-        cp pyproject.toml bundle/
-        cp uv.lock bundle/
-        cp Dockerfile bundle/
-        cp .dockerignore bundle/
-        cp docker-compose.yml bundle/
-        cp nginx.conf bundle/
-        cp Makefile bundle/
-        cp README.md bundle/
-        
-        # Debug: Show what's in the bundle
-        echo "Bundle contents:"
-        ls -la bundle/
-        echo "UI directory contents:"
-        ls -la bundle/ui/
-        echo "UI dist directory contents:"
-        ls -la bundle/ui/dist/ || echo "ui/dist not found"
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle
+          path: bundle/
+          retention-days: 1
 
-    - name: Upload bundle artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: bundle
-        path: bundle/
-        retention-days: 1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        name: Extract metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=latest,enable={{is_default_branch}}
+      - id: auth-google
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          project_id: "open-targets-eu-dev"
+          workload_identity_provider: projects/426265110888/locations/global/workloadIdentityPools/github-actions/providers/opentargets
+          service_account: github-actions@open-targets-eu-dev.iam.gserviceaccount.com
+          access_token_lifetime: 300s
 
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./bundle
-        platforms: linux/amd64
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+      - id: auth-gar
+        name: Login to Google Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: europe-west1-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth-google.outputs.access_token }}
+
+      - id: push
+        name: Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./bundle
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            europe-west1-docker.pkg.dev/open-targets-eu-dev/${{ env.REPO }}/${{ env.REPO }}:latest
+            europe-west1-docker.pkg.dev/open-targets-eu-dev/${{ env.REPO }}/${{ env.REPO }}:${{ env.TAG }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - id: generate-attestations
+        name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: europe-west1-docker.pkg.dev/open-targets-eu-dev/${{ env.REPO }}/${{ env.REPO }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
