@@ -1,6 +1,6 @@
 [project]
 name = "pathways-api"
-version = "0.1.0"
+version = "0.2.0"
 description = "FastAPI service for pathway analysis (GSEA) for Open Targets"
 authors = [{ name = "Open Targets", email = "contact@opentargets.org" }]
 readme = "README.md"
