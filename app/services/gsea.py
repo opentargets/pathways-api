@@ -83,7 +83,7 @@ class GSEA:
         """Runs GSEA analysis on the input DataFrame and returns the results as dataframe"""
         self._df = self.normalise()
         background_genes = get_background_genes(self._database_connection, gmt_name)
-        missing_genes = background_genes - self._input_symbols_set
+        missing_genes = sorted(background_genes - self._input_symbols_set)
         if missing_genes:
             self._extend_df_with_missing_genes(missing_genes)
         self._filter_approved_genes(approved_symbols)
@@ -223,10 +223,10 @@ class GSEA:
             .unique(subset=["symbol"], keep="first", maintain_order=True)
         )
 
-    def _extend_df_with_missing_genes(self, missing_genes: set[str]) -> None:
+    def _extend_df_with_missing_genes(self, missing_genes: list[str]) -> None:
         background_df = pl.DataFrame(
             {
-                "symbol": list(missing_genes),
+                "symbol": missing_genes,
                 "globalScore": 0.0,
             }
         )
@@ -301,11 +301,7 @@ def get_background_genes(
 
 
 def gsea(df: pl.DataFrame, library_sets: dict, processes: int = 4) -> pl.DataFrame:
-    return pl.from_pandas(
-        blitz.gsea(df.to_pandas(), library_sets, processes=processes).reset_index(
-            names="Term"
-        )
-    )
+    return blitz.gsea(df, library_sets, processes=processes)
 
 
 # def _compute_cache_key(df: pl.DataFrame, gmt_name: str) -> str:

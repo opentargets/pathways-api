@@ -1,5 +1,5 @@
 # Python backend stage
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
   build-essential \
   gcc \
   g++ \
+  git \
   && rm -rf /var/lib/apt/lists/*
 
 # Install uv
