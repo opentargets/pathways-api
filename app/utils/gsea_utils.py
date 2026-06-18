@@ -1,54 +1,7 @@
-import duckdb
-import polars as pl
 from fastapi import HTTPException
-
-from app.config import get_config
-
-
-def database_connection() -> duckdb.DuckDBPyConnection:
-    config = get_config()
-    return duckdb.connect(config.DATABASE_PATH)
-
-
-def validate_gsea_dataframe(df: pl.DataFrame) -> pl.DataFrame:
-    """
-    Validate and normalize a DataFrame for GSEA analysis.
-
-    Args:
-        df: Input DataFrame to validate
-
-    Returns:
-        Normalized DataFrame with 'symbol' and 'globalScore' columns, sorted by score
-
-    Raises:
-        HTTPException: If validation fails
-    """
-    # Handle unnamed columns (legacy support)
-    if set(df.columns) == set(range(len(df.columns))):
-        df = df.rename({"0": "symbol", "1": "globalScore"})
-
-    # Validate required columns
-    if not {"symbol", "globalScore"}.issubset(df.columns):
-        raise HTTPException(
-            status_code=400,
-            detail="Input must contain 'symbol' and 'globalScore' columns",
-        )
-
-    # Extract only required columns and sort
-    df = df.select(["symbol", "globalScore"]).sort("globalScore", descending=True)
-    return df
 
 
 def handle_gsea_error(error: Exception) -> HTTPException:
-    """
-    Convert GSEA analysis errors into user-friendly HTTP exceptions.
-
-    Args:
-        error: The exception that occurred during GSEA analysis
-
-    Returns:
-        HTTPException with appropriate status code and message
-    """
     error_str = str(error).lower()
 
     if isinstance(error, ValueError):
@@ -62,12 +15,9 @@ def handle_gsea_error(error: Exception) -> HTTPException:
                     "rather than disease names or other identifiers."
                 ),
             )
-        else:
-            return HTTPException(
-                status_code=400, detail=f"GSEA analysis error: {str(error)}"
-            )
-    else:
-        return HTTPException(
-            status_code=500,
-            detail=f"Unexpected error during GSEA analysis: {str(error)}",
-        )
+        return HTTPException(status_code=400, detail=f"GSEA analysis error: {str(error)}")
+
+    return HTTPException(
+        status_code=500,
+        detail=f"Unexpected error during GSEA analysis: {str(error)}",
+    )

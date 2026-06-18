@@ -22,7 +22,7 @@ async def list_gmt_files() -> list[str]:
 
 
 @router.post("/gsea/analyze/file", response_model=GseaJsonResponse)
-async def analyze_gsea_from_file(
+def analyze_gsea_from_file(
     request: Request,
     tsv_file: UploadFile = File(
         ...,
@@ -36,27 +36,25 @@ async def analyze_gsea_from_file(
     ),
 ):
     """
-    Run GSEA analysis from uploaded TSV file.
+    Run GSEA analysis from an uploaded TSV file.
 
-    Upload a TSV file with gene symbols and scores to perform Gene Set Enrichment Analysis.
+    The file must contain 'symbol' and 'globalScore' columns.
 
     Example:
-        POST /api/gsea/analyze/file?gmt_name=Reactome/ReactomePathways_2025
+        POST /api/gsea/analyze/file?gmt_name=reactome_2025
         Content-Type: multipart/form-data
-        Body: file=your_data.tsv
     """
-
-    # Read and validate file
     with tempfile.NamedTemporaryFile(delete=False, suffix=".tsv") as tmp:
-        content = tsv_file.file.read()
-        tmp.write(content)
+        tmp.write(tsv_file.file.read())
         try:
             df = pl.read_csv(tmp.name, separator="\t")
-            gsea = GSEA(df, request.app.state.config.DATABASE_PATH, validate=True)
-            result = gsea.results(
-                gmt_name, request.app.state.approved_symbols, analysis_direction
+            library_data = request.app.state.libraries[gmt_name]
+            gsea = GSEA(df, validate=True)
+            return gsea.results(
+                library_data,
+                request.app.state.approved_symbols,
+                analysis_direction,
             )
-            return result
         except HTTPException:
             raise
         except Exception as e:
@@ -64,7 +62,7 @@ async def analyze_gsea_from_file(
 
 
 @router.post("/gsea/analyze/json", response_model=GseaJsonResponse)
-async def analyze_gsea_from_json(
+def analyze_gsea_from_json(
     request: Request,
     gsea_input: GseaJsonRequest,
     gmt_name: GeneSetLibraryEnum = Query(..., description="GMT library name"),
@@ -74,25 +72,20 @@ async def analyze_gsea_from_json(
     ),
 ):
     """
-    Run GSEA analysis from JSON payload.
-
-    Send gene data as JSON to perform Gene Set Enrichment Analysis.
+    Run GSEA analysis from a JSON payload.
 
     Example:
-        POST /api/gsea/analyze/json?gmt_name=Reactome/ReactomePathways_2025
-        Content-Type: application/json
-        Body: {
-            "genes": [
-                {"symbol": "BRCA1", "globalScore": 0.95},
-                {"symbol": "TP53", "globalScore": 0.87}
-            ]
-        }
+        POST /api/gsea/analyze/json?gmt_name=reactome_2025
+        Body: {"genes": [{"symbol": "BRCA1", "globalScore": 0.95}]}
     """
     try:
-        df = pl.DataFrame(gsea_input.genes)
-        gsea = GSEA(df, request.app.state.db_connection, validate=False)
+        df = pl.DataFrame([gene.model_dump() for gene in gsea_input.genes])
+        library_data = request.app.state.libraries[gmt_name]
+        gsea = GSEA(df, validate=False)
         return gsea.results(
-            gmt_name, request.app.state.approved_symbols, analysis_direction
+            library_data,
+            request.app.state.approved_symbols,
+            analysis_direction,
         )
     except HTTPException:
         raise

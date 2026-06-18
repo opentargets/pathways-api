@@ -1,18 +1,16 @@
-import os
 from contextlib import asynccontextmanager
 
+import duckdb
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 
 from app.config import get_config
+from app.models.gsea import GeneSetLibraryEnum
 from app.routers import gsea
-from app.services.gsea import get_approved_symbols
-from app.utils.gsea_utils import database_connection
+from app.services.gsea import get_approved_symbols, load_library_data
 
 config = get_config()
 
@@ -20,28 +18,26 @@ config = get_config()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.config = config
-    app.state.db_connection = database_connection()
-    app.state.approved_symbols = get_approved_symbols(database_connection())
+    with duckdb.connect(config.DATABASE_PATH, read_only=True) as con:
+        app.state.approved_symbols = get_approved_symbols(con)
+        app.state.libraries = {
+            library: load_library_data(con, library) for library in GeneSetLibraryEnum
+        }
     yield
-    app.state.db_connection.close()
 
 
 app = FastAPI(debug=config.DEBUG, lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 
-
-# Add CORS middleware with flexible configuration for development
 if config.DEBUG:
-    # In development, allow all localhost origins
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Allow all origins in development
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 else:
-    # In production, use configured origins
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.CORS_ORIGINS,
@@ -50,46 +46,12 @@ else:
         allow_headers=["*"],
     )
 
-# Include routers
 app.include_router(gsea.router, prefix="/api", tags=["GSEA"])
-
-
-# Mount static files for the React app
-app.mount("/assets", StaticFiles(directory="./ui/dist/assets"), name="assets")
 
 
 @app.get("/")
 async def root():
     return {"message": f"Welcome to {config.APP_NAME}"}
-
-
-@app.get("/ui")
-async def serve_react_app_root():
-    """
-    Serve the React application at the root UI path.
-    """
-    index_path = "ui/dist/index.html"
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    else:
-        raise StarletteHTTPException(status_code=404, detail="React app not built")
-
-
-@app.get("/ui/{path:path}")
-async def serve_react_app(path: str):
-    """
-    Serve the React application. This catch-all route handles all UI routes
-    and serves the React app's index.html for client-side routing.
-    """
-    # Don't serve index.html for asset requests
-    if path.startswith("assets/"):
-        raise StarletteHTTPException(status_code=404, detail="Asset not found")
-
-    index_path = "ui/dist/index.html"
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    else:
-        raise StarletteHTTPException(status_code=404, detail="React app not built")
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -102,7 +64,4 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
                 "detail": f"The requested URL {request.url.path} was not found on the server",
             },
         )
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": exc.detail},
-    )
+    return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
