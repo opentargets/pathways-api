@@ -39,8 +39,8 @@ wheels = [
 
 [[package]]
 name = "blitzgsea"
-version = "0.0.2"
-source = { git = "https://github.com/jdhayhurst/blitzgsea?tag=v0.0.2#002cbe7dab93dbdfd9a73f22b6732cb45cb53e50" }
+version = "0.0.1"
+source = { git = "https://github.com/jdhayhurst/blitzgsea?tag=v0.0.1#ecd0deef088a77b3f5fdd94c764750f7da1d1682" }
 dependencies = [
     { name = "matplotlib" },
     { name = "mpmath" },
@@ -394,7 +394,7 @@ lint = [
 
 [package.metadata]
 requires-dist = [
-    { name = "blitzgsea", git = "https://github.com/jdhayhurst/blitzgsea?tag=v0.0.2" },
+    { name = "blitzgsea", git = "https://github.com/jdhayhurst/blitzgsea?tag=v0.0.1" },
     { name = "click", specifier = ">=8.3.1" },
     { name = "duckdb", specifier = ">=1.5.3" },
     { name = "fastapi", specifier = ">=0.137.1" },

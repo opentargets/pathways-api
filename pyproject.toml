@@ -27,4 +27,4 @@ dev = [
 lint = ["ruff>=0.7.1"]
 
 [tool.uv.sources]
-blitzgsea = { git = "https://github.com/jdhayhurst/blitzgsea", tag = "v0.0.2" }
+blitzgsea = { git = "https://github.com/jdhayhurst/blitzgsea", tag = "v0.0.1" }

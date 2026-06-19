@@ -139,7 +139,7 @@ class GSEA:
             .unique(subset=["symbol"], keep="first", maintain_order=True)
         )
 
-        result = blitz.gsea(df, library_data.id_gene_mapping, max_workers=max_workers)
+        result = blitz.gsea(df, library_data.id_gene_mapping)
         return _prepare_output(result, library_data, analysis_direction)
 
     def results(
