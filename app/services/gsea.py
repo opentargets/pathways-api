@@ -1,3 +1,4 @@
+import threading
 from dataclasses import dataclass
 
 import blitzgsea as blitz
@@ -11,6 +12,9 @@ from app.models.gsea import (
     GseaResult,
     OverlapStats,
 )
+
+# blitzgsea seeds the global numpy state, so parallel runs would change each other's scores
+_blitz_lock = threading.Lock()
 
 PATHWAY_LINK_MAP: dict[GeneSetLibraryEnum, str] = {
     GeneSetLibraryEnum.GOBiologicalProcess: "https://www.ebi.ac.uk/QuickGO/term/",
@@ -168,7 +172,8 @@ class GSEA:
             .unique(subset=["symbol"], keep="first", maintain_order=True)
         )
 
-        result = blitz.gsea(df, library_data.id_gene_mapping)
+        with _blitz_lock:
+            result = blitz.gsea(df, library_data.id_gene_mapping)
         return _prepare_output(result, library_data, analysis_direction)
 
     def results(

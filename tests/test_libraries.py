@@ -1,10 +1,15 @@
+import time
+from concurrent.futures import ThreadPoolExecutor
+
 import polars as pl
 import pytest
 from fastapi.testclient import TestClient
 
 import app.main
+import app.services.gsea
 from app.models.gsea import GeneSetLibraryEnum as Library
 from app.services.gsea import (
+    GSEA,
     LIBRARY_CATEGORIES,
     get_approved_symbols,
     get_symbols,
@@ -195,3 +200,26 @@ def test_application_needs_a_release(monkeypatch):
     with pytest.raises(RuntimeError, match="RELEASE_PATH"):
         with TestClient(app.main.app):
             pass
+
+
+def test_gsea_runs_one_at_a_time(release, monkeypatch):
+    targets = load_targets(release)
+    library = load_library_data(load_gene_sets(release), targets, Library.Reactome)
+    blitz_gsea, running, most = app.services.gsea.blitz.gsea, [], []
+
+    def slow_gsea(*args):
+        running.append(1)
+        most.append(len(running))
+        time.sleep(0.05)
+        try:
+            return blitz_gsea(*args)
+        finally:
+            running.pop()
+
+    monkeypatch.setattr(app.services.gsea.blitz, "gsea", slow_gsea)
+    df = pl.DataFrame({"symbol": SYMBOLS[:120], "globalScore": range(120, 0, -1)})
+    df = df.cast({"globalScore": pl.Float64})
+    with ThreadPoolExecutor(4) as executor:
+        for _ in range(4):
+            executor.submit(GSEA(df).run, library, get_approved_symbols(targets))
+    assert most == [1, 1, 1, 1]
