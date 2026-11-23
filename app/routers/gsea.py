@@ -9,7 +9,7 @@ from app.models.gsea import (
     GseaJsonRequest,
     GseaJsonResponse,
 )
-from app.services.gsea import GSEA, get_libraries
+from app.services.gsea import GSEA, get_libraries, with_symbols
 from app.utils.gsea_utils import handle_gsea_error
 
 router = APIRouter()
@@ -26,7 +26,7 @@ def analyze_gsea_from_file(
     request: Request,
     tsv_file: UploadFile = File(
         ...,
-        description="TSV file containing at least 2 columns: 'symbol' and 'globalScore'",
+        description="TSV file containing at least 2 columns: 'id' (Ensembl) or 'symbol', and 'globalScore'",
         pattern=r"\.tsv$",
     ),
     gmt_name: GeneSetLibraryEnum = Query(..., description="GMT library name"),
@@ -48,6 +48,7 @@ def analyze_gsea_from_file(
         tmp.write(tsv_file.file.read())
         try:
             df = pl.read_csv(tmp.name, separator="\t")
+            df = with_symbols(df, request.app.state.symbols)
             library_data = request.app.state.libraries[gmt_name]
             gsea = GSEA(df, validate=True)
             return gsea.results(
@@ -79,7 +80,11 @@ def analyze_gsea_from_json(
         Body: {"genes": [{"symbol": "BRCA1", "globalScore": 0.95}]}
     """
     try:
-        df = pl.DataFrame([gene.model_dump() for gene in gsea_input.genes])
+        df = pl.DataFrame(
+            [gene.model_dump() for gene in gsea_input.genes],
+            schema={"id": pl.String, "symbol": pl.String, "globalScore": pl.Float64},
+        )
+        df = with_symbols(df, request.app.state.symbols)
         library_data = request.app.state.libraries[gmt_name]
         gsea = GSEA(df, validate=False)
         return gsea.results(

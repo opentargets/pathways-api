@@ -1,14 +1,23 @@
 from enum import Enum
 from typing import List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Gene(BaseModel):
-    """Individual gene with symbol and score."""
+    """Individual gene with Ensembl ID or symbol, and score."""
 
-    symbol: str = Field(..., description="Gene symbol (e.g., 'BRCA1', 'TP53')")
+    id: str | None = Field(None, description="Ensembl ID (e.g., 'ENSG00000012048')")
+    symbol: str | None = Field(
+        None, description="Gene symbol (e.g., 'BRCA1', 'TP53'), used if there is no id"
+    )
     globalScore: float = Field(..., description="Gene score for ranking")
+
+    @model_validator(mode="after")
+    def check_has_id_or_symbol(self):
+        if not (self.id or self.symbol):
+            raise ValueError("a gene needs an id or a symbol")
+        return self
 
 
 class GseaJsonRequest(BaseModel):
@@ -27,11 +36,18 @@ class GseaJsonRequest(BaseModel):
 
 
 class GeneSetLibraryEnum(str, Enum):
-    GOBiologicalProcess2025 = "go_biological_process_2025"
-    GOMolecularFunction2025 = "go_molecular_function_2025"
-    GOCellularComponent2025 = "go_cellular_component_2025"
-    Reactome2025 = "reactome_2025"
+    GOBiologicalProcess = "go_biological_process"
+    GOMolecularFunction = "go_molecular_function"
+    GOCellularComponent = "go_cellular_component"
+    Reactome = "reactome"
     ChEMBLTargetClass = "chembl_target_class"
+
+    @classmethod
+    def _missing_(cls, value):
+        """Accept the names used before the year was dropped, e.g. reactome_2025."""
+        if isinstance(value, str) and value.endswith("_2025"):
+            return cls._value2member_map_.get(value.removesuffix("_2025"))
+        return None
 
 
 class OverlapStats(BaseModel):

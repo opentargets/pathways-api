@@ -1,6 +1,5 @@
 from contextlib import asynccontextmanager
 
-import duckdb
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -10,7 +9,13 @@ from starlette.responses import JSONResponse
 from app.config import get_config
 from app.models.gsea import GeneSetLibraryEnum
 from app.routers import gsea
-from app.services.gsea import get_approved_symbols, load_library_data
+from app.services.gsea import (
+    get_approved_symbols,
+    get_symbols,
+    load_gene_sets,
+    load_library_data,
+    load_targets,
+)
 
 config = get_config()
 
@@ -18,11 +23,17 @@ config = get_config()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.config = config
-    with duckdb.connect(config.DATABASE_PATH, read_only=True) as con:
-        app.state.approved_symbols = get_approved_symbols(con)
-        app.state.libraries = {
-            library: load_library_data(con, library) for library in GeneSetLibraryEnum
-        }
+    # Read the release once and keep it in memory for the lifespan of the application
+    if not config.RELEASE_PATH:
+        raise RuntimeError("RELEASE_PATH is not set")
+    targets = load_targets(config.RELEASE_PATH)
+    gene_sets = load_gene_sets(config.RELEASE_PATH)
+    app.state.approved_symbols = get_approved_symbols(targets)
+    app.state.symbols = get_symbols(targets)
+    app.state.libraries = {
+        library: load_library_data(gene_sets, targets, library)
+        for library in GeneSetLibraryEnum
+    }
     yield
 
 
