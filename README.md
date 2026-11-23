@@ -156,6 +156,11 @@ The application can be configured using environment variables:
 - `DEBUG`: Enable debug mode (default: `false`)
 - `CORS_ORIGINS`: Allowed CORS origins (comma-separated)
 - `APP_NAME`: Application name (default: "Pathways API")
+- `RELEASE_PATH` (required): root of a Platform release or pipeline run, local or `gs://`,
+  e.g. `gs://open-targets-pipeline-runs/<run_name>`. The gene set libraries are read once at
+  startup from `output/gene_sets`, and the symbols from `output/target`.
+
+Input genes are Ensembl IDs (`id`) or symbols (`symbol`). Results list symbols.
 
 ## Copyright
 

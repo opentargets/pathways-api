@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 import blitzgsea as blitz
-import duckdb
 import polars as pl
 from loguru import logger
 
@@ -14,11 +13,20 @@ from app.models.gsea import (
 )
 
 PATHWAY_LINK_MAP: dict[GeneSetLibraryEnum, str] = {
-    GeneSetLibraryEnum.GOBiologicalProcess2025: "https://www.ebi.ac.uk/QuickGO/term/",
-    GeneSetLibraryEnum.GOMolecularFunction2025: "https://www.ebi.ac.uk/QuickGO/term/",
-    GeneSetLibraryEnum.GOCellularComponent2025: "https://www.ebi.ac.uk/QuickGO/term/",
-    GeneSetLibraryEnum.Reactome2025: "https://reactome.org/content/detail/",
+    GeneSetLibraryEnum.GOBiologicalProcess: "https://www.ebi.ac.uk/QuickGO/term/",
+    GeneSetLibraryEnum.GOMolecularFunction: "https://www.ebi.ac.uk/QuickGO/term/",
+    GeneSetLibraryEnum.GOCellularComponent: "https://www.ebi.ac.uk/QuickGO/term/",
+    GeneSetLibraryEnum.Reactome: "https://reactome.org/content/detail/",
     GeneSetLibraryEnum.ChEMBLTargetClass: "https://www.ebi.ac.uk/chembl/visualise",
+}
+
+# Library -> category of its gene sets in the release
+LIBRARY_CATEGORIES: dict[GeneSetLibraryEnum, str] = {
+    GeneSetLibraryEnum.GOBiologicalProcess: "GO:BP",
+    GeneSetLibraryEnum.GOMolecularFunction: "GO:MF",
+    GeneSetLibraryEnum.GOCellularComponent: "GO:CC",
+    GeneSetLibraryEnum.Reactome: "Reactome",
+    GeneSetLibraryEnum.ChEMBLTargetClass: "ChEMBL Target Class",
 }
 
 NULL_DEFAULTS: dict[str, float | int | str] = {
@@ -42,27 +50,48 @@ class LibraryData:
     hierarchy: pl.DataFrame  # parent, child
 
 
+def load_targets(release_path: str) -> pl.DataFrame:
+    """Ensembl ID, approved symbol and obsolete symbols of the targets of a release."""
+    return (
+        pl.scan_parquet(f"{release_path.rstrip('/')}/output/target/*.parquet")
+        .select(
+            "id",
+            "approvedSymbol",
+            pl.col("obsoleteSymbols").list.eval(pl.element().struct.field("label")),
+        )
+        .collect()
+    )
+
+
+def load_gene_sets(release_path: str) -> pl.DataFrame:
+    """Gene sets of a release."""
+    return (
+        pl.scan_parquet(f"{release_path.rstrip('/')}/output/gene_sets/*.parquet")
+        .select("id", "label", "category", "parentIds", "entityIds")
+        .collect()
+    )
+
+
 def load_library_data(
-    con: duckdb.DuckDBPyConnection, library: GeneSetLibraryEnum
+    gene_sets: pl.DataFrame, targets: pl.DataFrame, library: GeneSetLibraryEnum
 ) -> LibraryData:
-    """Load and precompute all data for a library. Called once at startup per library."""
-    id_gene_result = con.execute(
-        "SELECT gene_sets FROM libraries WHERE library = ?", [library.value]
-    ).fetchone()
-    id_gene_mapping: dict[str, list[str]] = id_gene_result[0] if id_gene_result else {}
+    """Precompute all data for a library. Called once at startup per library."""
+    sets = gene_sets.filter(pl.col("category") == LIBRARY_CATEGORIES[library])
+    if sets.is_empty():
+        raise ValueError(f"No gene sets for {library.value}")
 
-    background_result = con.execute(
-        "SELECT genes FROM background WHERE library = ?", [library.value]
-    ).fetchone()
-    background_genes = frozenset(background_result[0] if background_result else [])
-
-    term_mapping = con.execute(
-        "SELECT id, pathway FROM id_pathway_mapping WHERE library = ?", [library.value]
-    ).pl()
-
-    hierarchy = con.execute(
-        "SELECT parent, child FROM hierarchy WHERE library = ?", [library.value]
-    ).pl()
+    symbols = dict(targets.select("id", "approvedSymbol").iter_rows())
+    id_gene_mapping: dict[str, list[str]] = {
+        id_: list(dict.fromkeys(symbols[gene] for gene in genes))
+        for id_, genes in sets.select("id", "entityIds").iter_rows()
+    }
+    background_genes = frozenset(g for v in id_gene_mapping.values() for g in v)
+    term_mapping = sets.select("id", pl.col("label").alias("pathway"))
+    hierarchy = (
+        sets.select(pl.col("parentIds").alias("parent"), pl.col("id").alias("child"))
+        .explode("parent")
+        .drop_nulls("parent")
+    )
 
     gene_df = pl.DataFrame(
         {
@@ -220,13 +249,34 @@ def _prepare_output(
     return df.fill_nan(None)
 
 
-def get_approved_symbols(con: duckdb.DuckDBPyConnection) -> pl.Series:
-    logger.info("Loading approved symbols")
-    symbols = (
-        con.execute("SELECT approvedSymbol FROM approved_symbols").pl().to_series()
+def get_approved_symbols(targets: pl.DataFrame) -> pl.Series:
+    return targets["approvedSymbol"].unique()
+
+
+def get_symbols(targets: pl.DataFrame) -> dict[str, str]:
+    """Approved symbol by Ensembl ID, and by obsolete symbol if it is of one target only."""
+    obsolete = (
+        targets.select(pl.col("obsoleteSymbols").alias("name"), "approvedSymbol")
+        .explode("name")
+        .unique()
+        .filter(
+            pl.col("name").is_not_null(),
+            ~pl.col("name").is_duplicated(),
+            ~pl.col("name").is_in(targets["approvedSymbol"].to_list()),
+        )
     )
-    logger.info("Loaded {} approved symbols", len(symbols))
-    return symbols
+    ids = targets.select("id", "approvedSymbol")
+    return dict(obsolete.iter_rows()) | dict(ids.iter_rows())
+
+
+def with_symbols(df: pl.DataFrame, symbols: dict[str, str]) -> pl.DataFrame:
+    """Input genes by approved symbol, found from their Ensembl `id`, or else `symbol`."""
+    columns = [c for c in ("id", "symbol") if c in df.columns]
+    if not columns:
+        return df
+    names = [pl.col(c).cast(pl.String).str.strip_chars() for c in columns]
+    found = [n.replace_strict(symbols, default=None) for n in names]
+    return df.with_columns(pl.coalesce(*found, *names[::-1]).alias("symbol"))
 
 
 def get_libraries() -> list[str]:

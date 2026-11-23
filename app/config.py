@@ -1,17 +1,14 @@
 import os
 from functools import lru_cache
-from pathlib import Path
 
 
 class BaseConfig:
     APP_NAME = "Open Targets Pathways API"
     DEBUG = False
     CORS_ORIGINS = []
-    BASE_DIR = Path(__file__).resolve().parents[0]
-    DATA_DIR = BASE_DIR / "data"
-    GMT_DIR = DATA_DIR / "gmt"
-    DATABASE_PATH = BASE_DIR / "pathways.db"
-    MIN_GENE_COL_IDX = 1
+    # Root of a Platform release or pipeline run, local or gs://, holding output/gene_sets
+    # and output/target
+    RELEASE_PATH = os.getenv("RELEASE_PATH", "")
 
 
 class DevelopmentConfig(BaseConfig):
