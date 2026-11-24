@@ -49,7 +49,7 @@ start-api-dev:
 	@echo "📊 API will be available at: http://localhost:8080"
 	@echo "🎨 UI will be available at: http://localhost:8080/ui"
 	@echo "📚 API docs will be available at: http://localhost:8080/docs"
-	@sudo uv run py-spy record -o profile.svg --subprocesses -- uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+	@sudo RELEASE_PATH="$(RELEASE_PATH)" uv run py-spy record -o profile.svg --subprocesses -- uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 
 
 
@@ -77,7 +77,7 @@ docker-build:
 
 docker-run:
 	@echo "🚀 Running Docker container..."
-	@docker run -d --name pathways-api -p 8080:8080 pathways-api:latest
+	@docker run -d --name pathways-api -p 8080:8080 -e RELEASE_PATH pathways-api:latest
 	@echo "✅ Container started. Access at http://localhost:8080"
 
 docker-stop:
