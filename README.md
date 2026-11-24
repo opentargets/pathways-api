@@ -72,7 +72,7 @@ docker build -t pathways-api:latest .
 make docker-run
 
 # Or manually
-docker run -d --name pathways-api -p 8080:8080 pathways-api:latest
+docker run -d --name pathways-api -p 8080:8080 -e RELEASE_PATH pathways-api:latest
 ```
 
 ### Using Docker Compose
