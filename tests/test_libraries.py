@@ -223,3 +223,25 @@ def test_gsea_runs_one_at_a_time(release, monkeypatch):
         for _ in range(4):
             executor.submit(GSEA(df).run, library, get_approved_symbols(targets))
     assert most == [1, 1, 1, 1]
+
+
+def test_padding_genes_are_shuffled_not_alphabetical(release, monkeypatch):
+    targets = load_targets(release)
+    library = load_library_data(load_gene_sets(release), targets, Library.Reactome)
+    blitz_gsea, signatures = app.services.gsea.blitz.gsea, []
+
+    def capture(signature, *args):
+        signatures.append(signature)
+        return blitz_gsea(signature, *args)
+
+    monkeypatch.setattr(app.services.gsea.blitz, "gsea", capture)
+    df = pl.DataFrame({"symbol": SYMBOLS[:5], "globalScore": [5.0, 4, 3, 2, 1]})
+    for _ in range(2):
+        GSEA(df).run(library, get_approved_symbols(targets))
+
+    first, second = signatures
+    assert first["symbol"][:5].to_list() == SYMBOLS[:5]
+    padding = first.filter(pl.col("globalScore") == 0)["symbol"].to_list()
+    assert len(padding) > 100
+    assert padding != sorted(padding)
+    assert first.equals(second)

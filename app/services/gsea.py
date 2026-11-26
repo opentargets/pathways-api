@@ -13,7 +13,9 @@ from app.models.gsea import (
     OverlapStats,
 )
 
-# blitzgsea seeds the global numpy state, so parallel runs would change each other's scores
+# blitzgsea sets mpmath's global precision while scoring and shares a module-level
+# cache of null models, so runs in one process must not overlap. Parallel analyses
+# come from running several uvicorn workers (WEB_CONCURRENCY in the Dockerfile).
 _blitz_lock = threading.Lock()
 
 PATHWAY_LINK_MAP: dict[GeneSetLibraryEnum, str] = {
@@ -162,13 +164,19 @@ class GSEA:
             "globalScore", descending=True
         )
 
+        # Padding genes all score 0, so their order decides the ranking among them.
+        # Shuffle with a fixed seed: alphabetical order made gene sets of A* genes
+        # look enriched. Sort first, as set order differs between processes.
         missing = sorted(library_data.background_genes - self._input_symbols)
         if missing:
-            df = pl.concat([df, pl.DataFrame({"symbol": missing, "globalScore": 0.0})])
+            padding = pl.DataFrame({"symbol": missing, "globalScore": 0.0}).sample(
+                fraction=1.0, shuffle=True, seed=0
+            )
+            df = pl.concat([df, padding])
 
         df = (
             df.filter(pl.col("symbol").is_in(approved_symbols))
-            .sort("globalScore", descending=True, nulls_last=True)
+            .sort("globalScore", descending=True, nulls_last=True, maintain_order=True)
             .unique(subset=["symbol"], keep="first", maintain_order=True)
         )
 

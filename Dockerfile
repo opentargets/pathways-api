@@ -38,9 +38,12 @@ COPY ui/dist ./ui/dist
 # Expose port 8080 (Cloud Run default)
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:${PORT:-8080}/ || exit 1
+# No HEALTHCHECK: Cloud Run ignores it; its startup probe is set on the service
+# (see `make cloudrun-configure`).
 
-# Run the application
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Each worker is a separate process with its own copy of the release (~1.3 GB)
+# and runs one analysis at a time, so this is the number of parallel analyses.
+ENV WEB_CONCURRENCY=3
+
+# Run the application (uvicorn reads WEB_CONCURRENCY as --workers)
+CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

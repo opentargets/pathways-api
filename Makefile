@@ -1,7 +1,7 @@
 # Makefile for Open Targets Pathways API
 # Provides convenient commands for development and production
 
-.PHONY: help start-dev-ui start-api-dev install-deps clean docker-build docker-run docker-stop docker-logs docker-push compose-up compose-down compose-logs
+.PHONY: help start-dev-ui start-api-dev install-deps clean docker-build docker-run docker-stop docker-logs docker-push cloudrun-configure compose-up compose-down compose-logs
 
 # Default target
 help:
@@ -18,6 +18,7 @@ help:
 	@echo "    make docker-stop     - Stop Docker container"
 	@echo "    make docker-logs     - Show Docker container logs"
 	@echo "    make docker-push     - Push Docker image to registry"
+	@echo "    make cloudrun-configure - Set Cloud Run concurrency and startup probe"
 	@echo ""
 	@echo "  Docker Compose:"
 	@echo "    make compose-up      - Start services with docker-compose"
@@ -95,6 +96,20 @@ docker-push:
 	@docker tag pathways-api:latest ghcr.io/opentargets/pathways-api:latest
 	@docker push ghcr.io/opentargets/pathways-api:latest
 	@echo "✅ Image pushed to registry"
+
+# Cloud Run service settings that aren't in the image.
+# Concurrency is ~2x WEB_CONCURRENCY so Cloud Run scales out instead of queuing;
+# the startup probe (HTTP, so it waits for a worker to finish loading the
+# release; TCP would pass as soon as the port is bound) allows ~120 s.
+CLOUDRUN_SERVICE ?= pathways-api
+CLOUDRUN_REGION ?= europe-west1
+CLOUDRUN_PROJECT ?= open-targets-eu-dev
+
+cloudrun-configure:
+	@gcloud run services update $(CLOUDRUN_SERVICE) \
+		--project=$(CLOUDRUN_PROJECT) --region=$(CLOUDRUN_REGION) \
+		--concurrency=6 --min-instances=1 \
+		--startup-probe=httpGet.path=/,httpGet.port=8080,initialDelaySeconds=0,periodSeconds=10,timeoutSeconds=5,failureThreshold=12
 
 # Docker Compose commands
 compose-up:
